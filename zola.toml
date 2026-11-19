@@ -1,0 +1,14 @@
+base_url = "https://angelin01.github.io/here-be-rants"
+title = "Here Be Rants"
+description = "Ramblings, rants and game dev field notes"
+author = "Angelin01"
+compile_sass = false
+build_search_index = false
+generate_feeds = true
+taxonomies = [{ name = "tags" }]
+
+[markdown]
+insert_anchor_links = "left"
+
+[markdown.highlighting]
+theme = "dracula"
