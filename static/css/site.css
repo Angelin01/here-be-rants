@@ -1,0 +1,263 @@
+@font-face {
+  font-family: "VGA";
+  src: url("../fonts/WebPlus_IBM_VGA_9x16.woff") format("woff");
+  /* Fallback fonts probably have different metrics than our font, so swapping them in breaks things */
+  font-display: block;
+}
+
+/*
+Rules:
+- font-size == line-height or grid breaks
+- All spacing in --lh rows
+- All headers must be in multiples of font size too
+- Font is 9x16
+- Only glyphs the font has
+*/
+:root {
+  --lh: 16px;
+  --bg: #100d0b;
+  --text: #e6dfd0;
+  --bright: #fff;
+  --dim: #8f897e;
+  --stone: #8f897e;
+  --detail: #a89a80;
+  --ember: #e0522b;
+  --purple: #9b5de5;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font: inherit;
+  color: inherit;
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/var(--lh) "VGA", monospace;
+  /* In Firefox, bold and italics widen the font which breaks the grid */
+  font-synthesis: none;
+}
+
+::selection {
+  background: var(--purple);
+  color: var(--bg);
+}
+
+main {
+  max-width: 72ch;
+  margin: var(--lh) auto;
+  padding: 0 1ch;
+}
+
+main :is(h1, h2, h3, h4, p, ul, ol, pre, blockquote, table, hr, img) {
+  margin-bottom: var(--lh);
+}
+
+main li > :is(ul, ol) {
+  margin-bottom: 0;
+}
+
+/* Headings */
+
+h1 {
+  font-size: 32px;
+  line-height: calc(2 * var(--lh));
+  color: var(--bright);
+}
+
+h2 {
+  margin-top: var(--lh);
+  background: color-mix(in srgb, var(--purple) 22%, var(--bg));
+  color: var(--bright);
+}
+
+h3 {
+  color: var(--ember);
+}
+
+/*
+Every heading gets a glyph prefix. Markdown headings get it from their anchor link instead, so it's clickable.
+The `/ ""` after the content is its alt text: empty, so screen readers skip the decoration.
+*/
+h1::before,
+h2:not(:has(.anchor))::before,
+h3:not(:has(.anchor))::before,
+h4:not(:has(.anchor))::before,
+.anchor::before {
+  color: var(--ember);
+}
+
+h1::before {
+  content: "☼ " / "";
+}
+
+h2:not(:has(.anchor))::before,
+h2 .anchor::before {
+  content: "» " / "";
+}
+
+h3:not(:has(.anchor))::before,
+h3 .anchor::before {
+  content: "› " / "";
+}
+
+h4:not(:has(.anchor))::before,
+h4 .anchor::before {
+  content: "· " / "";
+}
+
+.anchor:hover::before,
+.anchor:focus-visible::before {
+  color: var(--purple);
+}
+
+/* Inline text */
+
+a {
+  color: var(--purple);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Links inside running text need more than color to stand out (color blindness) */
+main :is(p, li, td, blockquote) a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+:focus-visible {
+  outline: 1px solid var(--ember);
+  outline-offset: 1px;
+}
+
+strong {
+  color: var(--bright);
+}
+
+em {
+  color: var(--detail);
+}
+
+/* Raised text would push the line box taller and knock everything below off the grid */
+sup,
+sub {
+  vertical-align: baseline;
+}
+
+/* Code */
+
+code {
+  color: var(--detail);
+}
+
+pre {
+  padding: var(--lh) 2ch;
+  white-space: pre-wrap;
+}
+
+pre code {
+  color: inherit;
+}
+
+/* Dracula's comment color is too dim on our background. Its colors are inline styles, hence !important */
+pre [style*="#6272A4"] {
+  color: var(--dim) !important;
+}
+
+/* Blocks */
+
+blockquote {
+  padding-left: 2ch;
+  color: var(--detail);
+}
+
+blockquote p {
+  margin-bottom: 0;
+}
+
+/* Instead of list-style: none, use real glyphs, because Safari is stupid and drops list semantics without them */
+ul {
+  list-style-type: "• ";
+  padding-left: 2ch;
+}
+
+ul ul {
+  list-style-type: "◦ ";
+}
+
+ul ul ul {
+  list-style-type: "· ";
+}
+
+ol {
+  list-style-type: decimal;
+  padding-left: 3ch;
+}
+
+ol ol {
+  list-style-type: lower-alpha;
+}
+
+li::marker {
+  color: var(--ember);
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0 3ch 0 0;
+  text-align: left;
+}
+
+th {
+  color: var(--ember);
+}
+
+/* Borders are fractions of a row, so rules are drawn with a box glyph instead */
+hr {
+  border: 0;
+  height: var(--lh);
+  overflow: hidden;
+  color: var(--stone);
+}
+
+hr::before {
+  content: "════════════════════════════════════════════════════════════════════════════════════════" / "";
+  display: block;
+  white-space: nowrap;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* Footnotes */
+
+.footnote-reference::before {
+  content: "[" / "";
+}
+
+.footnote-reference::after {
+  content: "]" / "";
+}
+
+.footnote-definition {
+  display: flex;
+  gap: 1ch;
+  margin-bottom: var(--lh);
+  color: var(--dim);
+}
+
+.footnote-definition p {
+  margin-bottom: 0;
+}

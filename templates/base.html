@@ -6,6 +6,8 @@
 <title>{% block title %}{{ config.title }}{% endblock %}</title>
 <meta name="description" content="{% block description %}{{ config.description }}{% endblock %}">
 <link rel="canonical" href="{{ current_url }}">
+<link rel="preload" href="{{ get_url(path='fonts/WebPlus_IBM_VGA_9x16.woff') }}" as="font" type="font/woff" crossorigin>
+<link rel="stylesheet" href="{{ get_url(path='css/site.css') }}">
 <link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="{{ get_url(path='atom.xml') }}">
 </head>
 <body>
