@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { castle, layout } from './castle.ts';
+import { castle, layout, outline } from './castle.ts';
 import { rng } from './random.ts';
 
 const FLUFF = `"",,''..♣τ♠*`;
@@ -85,4 +85,27 @@ test('when the content grows, then side towers never reach the keep', () => {
     assert.ok(keepRow > 0, `contentRows=${contentRows}: no keep`);
     assert.ok(lastTowerRow < keepRow - 2, `contentRows=${contentRows}: tower at ${lastTowerRow}, keep at ${keepRow}`);
   }
+});
+
+test('given a frame, when outlining, then a box is drawn on its edges and the inside is untouched', () => {
+  const rows = ['......', '......', '......', '......'];
+  const frame = { top: 0, bottom: 3, left: 1, right: 4 };
+
+  assert.deepEqual(outline(rows, [frame], []), [
+    '.┌──┐.',
+    '.│..│.',
+    '.│..│.',
+    '.└──┘.',
+  ]);
+});
+
+test('given a bar, when outlining, then only its left column gets a line', () => {
+  const rows = ['....', '....', '....'];
+  const bar = { top: 1, bottom: 2, left: 1, right: 3 };
+
+  assert.deepEqual(outline(rows, [], [bar]), [
+    '....',
+    '.│..',
+    '.│..',
+  ]);
 });

@@ -117,6 +117,10 @@ html {
   color: var(--stone);
 }
 
+#walls .code {
+  color: var(--purple);
+}
+
 /* Content */
 
 main :is(h1, h2, h3, h4, p, ul, ol, pre, blockquote, table, hr, img) {
@@ -235,6 +239,11 @@ main pre code {
 /* Dracula's comment color is too dim on our background. Its colors are inline styles, hence !important */
 main pre [style*="#6272A4"] {
   color: var(--dim) !important;
+}
+
+/* The frame drawn by walls.ts would be covered by Dracula's background. Without JS the background stays */
+#field.walled main pre {
+  background: none !important;
 }
 
 /* Blocks */

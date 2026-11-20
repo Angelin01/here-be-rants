@@ -95,6 +95,14 @@ interface Style {
   back: string[];
 }
 
+// A rectangle of grid cells, edges included
+export interface Cells {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
 // Fills n cells of a row, n is whatever the fixed parts left over
 type Fill = (n: number) => string;
 
@@ -311,6 +319,28 @@ export function castle(l: Layout, contentRows: number, rand: Rand, fluff: string
   }
 
   s.back.forEach((row, i) => put(grid, backY + i, left, row));
+
+  return grid.map(row => row.join(''));
+}
+
+export function outline(rows: string[], frames: Cells[], bars: Cells[]): string[] {
+  const grid = rows.map(row => [...row]);
+
+  for (const { top, bottom, left, right } of frames) {
+    const inner = right - left - 1;
+    put(grid, top, left, '┌' + repeat('─')(inner) + '┐');
+    for (let r = top + 1; r < bottom; r++) {
+      put(grid, r, left, '│');
+      put(grid, r, right, '│');
+    }
+    put(grid, bottom, left, '└' + repeat('─')(inner) + '┘');
+  }
+
+  for (const { top, bottom, left } of bars) {
+    for (let r = top; r <= bottom; r++) {
+      put(grid, r, left, '│');
+    }
+  }
 
   return grid.map(row => row.join(''));
 }

@@ -34,8 +34,7 @@ function checkGrid(): string[] {
   // Same measuring as walls.ts, keep them in sync
   const walls = document.getElementById('walls')!;
   const court = document.getElementById('court')!;
-  const style = getComputedStyle(court);
-  const lh = parseFloat(style.lineHeight);
+  const lh = parseFloat(getComputedStyle(court).lineHeight);
 
   const probe = document.createElement('span');
   probe.textContent = 'M'.repeat(PROBE_CHARS);
@@ -46,45 +45,52 @@ function checkGrid(): string[] {
 
   const out: string[] = [];
   const offGrid = (v: number, unit: number) => Math.abs(v / unit - Math.round(v / unit)) > TOLERANCE;
+  const origin = walls.getBoundingClientRect();
 
-  // With the castle painted, content must line up with it. Without JS there's no castle, only the column itself.
-  let originX: number;
-  let originY: number;
-  if (walls.dataset.cols) {
-    const box = walls.getBoundingClientRect();
-    originX = box.left;
-    originY = box.top;
-
-    // A glyph from a fallback font has a different width and drags the rest of its row along.
-    // Padding or wrapping rows would also throw the castle off while its box still looks aligned.
-    const width = Number(walls.dataset.cols) * cw;
-    const height = walls.textContent!.split('\n').length * lh;
-    if (Math.abs(box.width - width) > TOLERANCE * cw) {
-      out.push(`walls are ${box.width}px wide, expected ${width}px (glyph width drift or padding)`);
-    }
-    if (Math.abs(box.height - height) > TOLERANCE * lh) {
-      out.push(`walls are ${box.height}px tall, expected ${height}px (wrapping rows or padding)`);
-    }
-  } else {
-    const box = court.getBoundingClientRect();
-    originX = box.left + parseFloat(style.paddingLeft);
-    originY = box.top;
+  // A glyph from a fallback font has a different width and drags the rest of its row along.
+  // Padding or wrapping rows would also throw the castle off while its box still looks aligned.
+  const width = Number(walls.dataset.cols) * cw;
+  const height = walls.textContent!.split('\n').length * lh;
+  if (Math.abs(origin.width - width) > TOLERANCE * cw) {
+    out.push(`walls are ${origin.width}px wide, expected ${width}px (glyph width drift or padding)`);
+  }
+  if (Math.abs(origin.height - height) > TOLERANCE * lh) {
+    out.push(`walls are ${origin.height}px tall, expected ${height}px (wrapping rows or padding)`);
   }
 
   for (const el of court.querySelectorAll('*')) {
+    // Snap boxes are padded to whole rows as a unit, whatever is inside them is free
+    if (el.parentElement?.closest('[data-snap]')) {
+      continue;
+    }
     if (!BLOCK_DISPLAYS.includes(getComputedStyle(el).display)) {
       continue;
     }
 
     const b = el.getBoundingClientRect();
-    const x = b.left - originX;
-    const y = b.top - originY;
+    const x = b.left - origin.left;
+    const y = b.top - origin.top;
 
     if (offGrid(x, cw) || offGrid(y, lh) || offGrid(b.height, lh)) {
       const tag = el.tagName.toLowerCase() + (el.className ? `.${el.className}` : '');
       const text = el.textContent!.slice(0, SNIPPET_CHARS).trim();
       out.push(`${tag} "${text}" at ${x},${y} h=${b.height}`);
     }
+  }
+
+  return out;
+}
+
+// Runs inside the page, so it can't use anything from this file
+function checkReadable(): string[] {
+  const out: string[] = [];
+  const root = document.documentElement;
+
+  if (document.querySelector('main')!.innerText.trim().length === 0) {
+    out.push('no visible text');
+  }
+  if (root.scrollWidth > root.clientWidth) {
+    out.push(`page scrolls sideways: ${root.scrollWidth}px of content in ${root.clientWidth}px`);
   }
 
   return out;
@@ -119,24 +125,23 @@ async function pageOk(page: Page, urlPath: string, name: string, js = true): Pro
   }
 
   if (js) {
-    // walls.ts repaints a frame after the font loads. Without waiting, checkGrid sees no castle and
-    // mistakes the page for the no-JS one.
+    // walls.ts repaints a frame after the font loads, measuring before that would see no castle
     await waitTwoFrames(page);
-    if (!(await page.evaluate(() => document.getElementById('walls')!.dataset.cols))) {
+    if (await page.evaluate(() => document.getElementById('walls')!.dataset.cols)) {
+      problems.push(...await page.evaluate(checkGrid));
+    } else {
       problems.push('castle was not painted');
     }
-  }
 
-  problems.push(...await page.evaluate(checkGrid));
-
-  // axe injects a script to run, so it can't with JS off. The same page already went through it with JS on
-  if (js) {
     // The castle is decoration hidden from screen readers, contrast rules don't apply to it
     const axe = await new AxeBuilder({ page }).exclude('#walls').analyze();
     for (const v of axe.violations) {
       const where = v.nodes.slice(0, MAX_A11Y_NODES_SHOWN).map(n => n.target.join(' ')).join(', ');
       problems.push(`a11y ${v.id}: ${v.help} (${where})`);
     }
+  } else {
+    // Without JS images can't snap to rows, so only readability is promised. axe injects a script, and this page already passed it with JS on
+    problems.push(...await page.evaluate(checkReadable));
   }
 
   await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: true });
@@ -163,8 +168,8 @@ async function engineOk(browser: Browser, name: string): Promise<boolean> {
     await context.close();
   }
 
-  // The no-JS page is the promise to readers on weird browsers, so it gets checked too
-  const width = WIDTHS[WIDTHS.length - 1];
+  // Narrowest width, where sideways scrolling is likeliest
+  const width = WIDTHS[0];
   const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT }, javaScriptEnabled: false });
   ok = await pageOk(await context.newPage(), NOJS_PAGE, `${name}-nojs${slug(NOJS_PAGE)}`, false) && ok;
   await context.close();
