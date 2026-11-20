@@ -1,0 +1,6 @@
+{#- Expects `pages`. role="list" because Safari drops list semantics once the markers are gone -#}
+<ul class="posts" role="list">
+{% for p in pages %}
+<li><a href="{{ p.permalink }}">{{ p.title }}</a><span class="dots"></span><time datetime="{{ p.date }}">{{ p.date | date(format="%Y.%m.%d") }}</time></li>
+{% endfor %}
+</ul>

@@ -221,7 +221,7 @@ async function main(args: string[]): Promise<number> {
   }
 
   fs.mkdirSync(SHOTS, { recursive: true });
-  const zola = childProcess.spawn('zola', ['serve', '--drafts', '--port', String(PORT)], { cwd: ROOT, stdio: 'ignore' });
+  const zola = childProcess.spawn('zola', ['serve', '--drafts', '--port', String(PORT)], { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
 
   let ok = true;
   try {

@@ -337,3 +337,42 @@ img {
 .footnote-definition p {
   margin-bottom: 0;
 }
+
+/* Pages */
+
+.meta {
+  color: var(--dim);
+}
+
+/* Post list */
+
+.posts {
+  list-style: none;
+  padding-left: 0;
+}
+
+.posts li {
+  display: flex;
+  align-items: end;
+}
+
+.posts a {
+  flex: 0 1 auto;
+}
+
+.posts .dots {
+  flex: 1 0 3ch;
+  overflow: hidden;
+  color: var(--dim);
+}
+
+.posts .dots::before {
+  content: " ........................................................................" / "";
+  white-space: pre;
+}
+
+.posts time {
+  flex: none;
+  padding-left: 1ch;
+  color: var(--dim);
+}

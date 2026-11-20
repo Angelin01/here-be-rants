@@ -2,9 +2,6 @@
 {% block title %}#{{ term.name }} - {{ config.title }}{% endblock %}
 {% block content %}
 <h1>#{{ term.name }}</h1>
-<ul>
-{% for p in term.pages %}
-<li><a href="{{ p.permalink }}">{{ p.title }}</a> <time datetime="{{ p.date }}">{{ p.date }}</time></li>
-{% endfor %}
-</ul>
+{% set pages = term.pages %}
+{% include "post_list.html" %}
 {% endblock %}
