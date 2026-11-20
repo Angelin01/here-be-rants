@@ -9,10 +9,16 @@
 <link rel="preload" href="{{ get_url(path='fonts/WebPlus_IBM_VGA_9x16.woff') }}" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="{{ get_url(path='css/site.css') }}">
 <link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="{{ get_url(path='atom.xml') }}">
+<script type="module" src="{{ get_url(path='js/walls.js') }}"></script>
 </head>
-<body>
+<body data-seed="{{ current_path }}">
+<div id="field">
+<pre id="walls" aria-hidden="true" data-nosnippet></pre>
+<div id="court">
 <main>
 {% block content %}{% endblock %}
 </main>
+</div>
+</div>
 </body>
 </html>
