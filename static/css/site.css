@@ -123,11 +123,11 @@ html {
 
 /* Content */
 
-main :is(h1, h2, h3, h4, p, ul, ol, pre, blockquote, table, hr, img) {
+#court :is(header, footer nav, h1, h2, h3, h4, p, ul, ol, pre, blockquote, table, hr, img) {
   margin-bottom: var(--lh);
 }
 
-main li > :is(ul, ol) {
+#court li > :is(ul, ol) {
   margin-bottom: 0;
 }
 
@@ -197,7 +197,7 @@ a:hover {
 }
 
 /* Links inside running text need more than color to stand out (color blindness) */
-main :is(p, li, td, blockquote) a {
+#court :is(p, li, td, blockquote) a {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
