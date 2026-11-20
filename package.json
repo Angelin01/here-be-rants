@@ -4,7 +4,8 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "dev": "zola serve --drafts"
+    "dev": "zola serve --drafts",
+    "check": "tsc && node tools/check.ts"
   },
   "devEngines": {
     "packageManager": {
@@ -13,5 +14,11 @@
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@12.21.0"
+  "packageManager": "pnpm@12.21.0",
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@types/node": "^26.6.6",
+    "playwright": "^1.65.1",
+    "typescript": "^7.0.2"
+  }
 }
