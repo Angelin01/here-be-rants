@@ -49,3 +49,12 @@ manual checking if needed.
 - Each page's castle and fluff is random, but seeded by its title/path.
 - `tsc` compiles `src/` to `static/js/`. This is simple enough we don't need a bundler. `tools/` and the tests are run
   by Node directly.
+
+## License
+
+- General theme code: [Apache 2.0](LICENSE).
+- Posts in `content/`: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+  - Code snippets inside the blog posts are also licensed under [Apache 2.0](LICENSE), except when they link their own
+  separate source and license.
+- Font: IBM VGA 9x16 from [The Ultimate Oldschool PC Font Pack](https://int10h.org/oldschool-pc-fonts/) by VileR,
+  [CC BY-SA 4.0](static/fonts/LICENSE-oldschool-pc-fonts.txt).

@@ -1,11 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>{{ config.title }}</h1>
-<p>{{ config.description }}</p>
+<p class="meta">{{ config.description }}</p>
 {% set posts = get_section(path="posts/_index.md") %}
-<ul>
-{% for p in posts.pages %}
-<li><a href="{{ p.permalink }}">{{ p.title }}</a> <time datetime="{{ p.date }}">{{ p.date }}</time></li>
-{% endfor %}
-</ul>
+{% set pages = posts.pages %}
+{% include "post_list.html" %}
 {% endblock %}

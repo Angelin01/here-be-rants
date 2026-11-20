@@ -2,6 +2,7 @@
 title = "Kitchen sink"
 draft = true
 date = 2026-11-04
+updated = 2026-11-20
 [taxonomies]
 tags = ["meta", "tooling"]
 +++

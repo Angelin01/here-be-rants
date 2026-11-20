@@ -123,11 +123,12 @@ html {
 
 /* Content */
 
-main :is(h1, h2, h3, h4, p, ul, ol, pre, blockquote, table, hr, img) {
+/* Elements only: a class in here would outrank the nested list exception below */
+#court :is(header, footer nav, h1, h2, h3, h4, p, ul, ol, pre, blockquote, table, hr, img) {
   margin-bottom: var(--lh);
 }
 
-main li > :is(ul, ol) {
+#court li > :is(ul, ol) {
   margin-bottom: 0;
 }
 
@@ -197,7 +198,7 @@ a:hover {
 }
 
 /* Links inside running text need more than color to stand out (color blindness) */
-main :is(p, li, td, blockquote) a {
+#court :is(p, li, td, blockquote) a {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -336,4 +337,57 @@ img {
 
 .footnote-definition p {
   margin-bottom: 0;
+}
+
+/* Pages */
+
+.meta {
+  color: var(--dim);
+}
+
+.centered {
+  text-align: center;
+}
+
+/* Post list */
+
+.posts {
+  list-style: none;
+  padding-left: 0;
+}
+
+.posts li {
+  display: flex;
+  align-items: end;
+}
+
+.posts a {
+  flex: 0 1 auto;
+}
+
+.posts .dots {
+  flex: 1 0 3ch;
+  overflow: hidden;
+  color: var(--dim);
+}
+
+.posts .dots::before {
+  content: " ........................................................................" / "";
+  white-space: pre;
+}
+
+.posts time {
+  flex: none;
+  padding-left: 1ch;
+  color: var(--dim);
+}
+
+/* Posts */
+
+/* The empty span keeps a lone "newer" link on the right */
+.pager {
+  display: flex;
+  justify-content: space-between;
+  gap: 2ch;
+  margin-bottom: var(--lh);
 }

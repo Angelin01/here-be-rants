@@ -1,3 +1,5 @@
+{#- The 404 page gets no current_path or current_url -#}
+{% set path = current_path | default(value='/404') -%}
 <!doctype html>
 <html lang="en">
 <head>
@@ -5,19 +7,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{{ config.title }}{% endblock %}</title>
 <meta name="description" content="{% block description %}{{ config.description }}{% endblock %}">
-<link rel="canonical" href="{{ current_url }}">
+{% if current_url is defined %}<link rel="canonical" href="{{ current_url }}">{% endif %}
 <link rel="preload" href="{{ get_url(path='fonts/WebPlus_IBM_VGA_9x16.woff') }}" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="{{ get_url(path='css/site.css') }}">
 <link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="{{ get_url(path='atom.xml') }}">
 <script type="module" src="{{ get_url(path='js/walls.js') }}"></script>
 </head>
-<body data-seed="{{ current_path }}">
+<body data-seed="{{ path }}">
 <div id="field">
 <pre id="walls" aria-hidden="true" data-nosnippet></pre>
 <div id="court">
+{% if path != "/" %}
+<header>
+<nav aria-label="Breadcrumb"><a href="{{ get_url(path='@/_index.md') }}"><span aria-hidden="true">« </span>{{ config.title }}</a></nav>
+</header>
+{% endif %}
 <main>
 {% block content %}{% endblock %}
 </main>
+<footer>
+<hr>
+<nav aria-label="Site"><a href="{{ get_url(path='@/_index.md') }}">Home</a> · <a href="{{ get_url(path='@/about.md') }}">About</a> · <a href="{{ get_url(path='tags/') }}">Tags</a> · <a href="{{ get_url(path='atom.xml') }}">Feed</a></nav>
+<p class="meta">Posts are <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Code, including snippets in posts, is <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache 2.0</a>, unless it links its own license.</p>
+<p class="meta">Font: IBM VGA 9x16 from <a href="https://int10h.org/oldschool-pc-fonts/">The Ultimate Oldschool PC Font Pack</a> by VileR, <a href="{{ get_url(path='fonts/LICENSE-oldschool-pc-fonts.txt') }}">CC BY-SA 4.0</a>.</p>
+</footer>
 </div>
 </div>
 </body>
