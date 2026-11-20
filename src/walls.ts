@@ -1,7 +1,7 @@
 import { castle, layout, outline, type Cells } from './castle.ts';
 import { rng } from './random.ts';
+import { DEFAULT_THEME, THEMES, themeFor, type Theme } from './themes.ts';
 
-const MEADOW_FLUFF = `"",,''..♣τ♠*`;
 const PROBE_CHARS = 100;
 const ROW_TOLERANCE = 0.01;
 
@@ -26,6 +26,7 @@ const court = document.getElementById('court')!;
 const seed = document.body.dataset.seed ?? location.pathname;
 
 let paintQueued = false;
+let theme: Theme = THEMES[DEFAULT_THEME];
 
 interface Cell {
   cw: number;
@@ -103,7 +104,7 @@ function paint() {
   // Only measurable now that the court has its final width
   snapToRows(lh);
   const contentRows = Math.ceil(court.offsetHeight / lh);
-  const rows = castle(l, contentRows, rng(seed), MEADOW_FLUFF);
+  const rows = castle(l, contentRows, rng(seed), theme.fluff);
 
   const origin = field.getBoundingClientRect();
   const frames = [...court.querySelectorAll('pre')].map(el => cellsOf(el, origin, cell));
@@ -112,6 +113,20 @@ function paint() {
   walls.innerHTML = outline(rows, frames, bars).map(toHtml).join('\n');
   walls.dataset.cols = String(l.cols);
   field.style.height = `${rows.length * lh}px`;
+}
+
+function chooseTheme(): string {
+  const wanted = new URLSearchParams(location.search).get('theme') || document.body.dataset.theme || themeFor(seed);
+  return wanted in THEMES ? wanted : DEFAULT_THEME;
+}
+
+function applyTheme(name: string) {
+  theme = THEMES[name];
+  const root = document.documentElement;
+  root.dataset.theme = name;
+  for (const [key, value] of Object.entries(theme.colors)) {
+    root.style.setProperty(`--${key}`, value);
+  }
 }
 
 function schedulePaint() {
@@ -133,6 +148,7 @@ function repaintOnResize() {
 }
 
 function main() {
+  applyTheme(chooseTheme());
   repaintOnResize();
   document.fonts.ready.then(schedulePaint);
   schedulePaint();

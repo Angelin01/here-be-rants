@@ -13,7 +13,7 @@
 <link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="{{ get_url(path='atom.xml') }}">
 <script type="module" src="{{ get_url(path='js/walls.js') }}"></script>
 </head>
-<body data-seed="{{ path }}">
+<body data-seed="{{ path }}" data-theme="{% block theme %}{% endblock %}">
 <div id="field">
 <pre id="walls" aria-hidden="true" data-nosnippet></pre>
 <div id="court">

@@ -5,6 +5,7 @@ import * as net from 'node:net';
 import * as path from 'node:path';
 import { chromium, firefox, type Browser, type BrowserType, type Page } from 'playwright';
 import { AxeBuilder } from '@axe-core/playwright';
+import { THEMES } from '../src/themes.ts';
 
 const ROOT = path.join(import.meta.dirname, '..');
 const SHOTS = path.join(ROOT, 'shots');
@@ -14,6 +15,7 @@ const PORT = 4111;
 const BASE = `http://${HOST}:${PORT}`;
 const PAGES = ['/', '/posts/kitchen-sink/', '/about/', '/tags/', '/does/not/exist/should/http404/'];
 const NOJS_PAGE = '/posts/kitchen-sink/';
+const THEME_PAGE = '/posts/kitchen-sink/';
 const WIDTHS = [390, 768, 1280];
 const VIEWPORT_HEIGHT = 900;
 
@@ -116,7 +118,12 @@ async function waitTwoFrames(page: Page) {
   await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 }
 
-async function pageOk(page: Page, urlPath: string, name: string, js = true): Promise<boolean> {
+interface PageOptions {
+  js?: boolean;
+  theme?: string;
+}
+
+async function pageOk(page: Page, urlPath: string, name: string, { js = true, theme }: PageOptions = {}): Promise<boolean> {
   await page.goto(BASE + urlPath);
 
   const problems: string[] = [];
@@ -131,6 +138,11 @@ async function pageOk(page: Page, urlPath: string, name: string, js = true): Pro
       problems.push(...await page.evaluate(checkGrid));
     } else {
       problems.push('castle was not painted');
+    }
+
+    const applied = await page.evaluate(() => document.documentElement.dataset.theme);
+    if (theme && applied !== theme) {
+      problems.push(`theme is ${applied}, expected ${theme}`);
     }
 
     // The castle is decoration hidden from screen readers, contrast rules don't apply to it
@@ -154,7 +166,7 @@ async function pageOk(page: Page, urlPath: string, name: string, js = true): Pro
   return problems.length === 0;
 }
 
-async function engineOk(browser: Browser, name: string): Promise<boolean> {
+async function pagesOk(browser: Browser, name: string): Promise<boolean> {
   let ok = true;
 
   for (const width of WIDTHS) {
@@ -168,13 +180,39 @@ async function engineOk(browser: Browser, name: string): Promise<boolean> {
     await context.close();
   }
 
+  return ok;
+}
+
+async function themesOk(browser: Browser, name: string): Promise<boolean> {
+  let ok = true;
+  const width = WIDTHS[WIDTHS.length - 1];
+  const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT } });
+  const page = await context.newPage();
+
+  for (const theme of Object.keys(THEMES)) {
+    ok = await pageOk(page, `${THEME_PAGE}?theme=${theme}`, `${name}-theme-${theme}`, { theme }) && ok;
+  }
+
+  await context.close();
+  return ok;
+}
+
+async function noJsOk(browser: Browser, name: string): Promise<boolean> {
   // Narrowest width, where sideways scrolling is likeliest
   const width = WIDTHS[0];
   const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT }, javaScriptEnabled: false });
-  ok = await pageOk(await context.newPage(), NOJS_PAGE, `${name}-nojs${slug(NOJS_PAGE)}`, false) && ok;
+  const ok = await pageOk(await context.newPage(), NOJS_PAGE, `${name}-nojs${slug(NOJS_PAGE)}`, { js: false });
   await context.close();
 
   return ok;
+}
+
+async function engineOk(browser: Browser, name: string): Promise<boolean> {
+  const pages = await pagesOk(browser, name);
+  const themes = await themesOk(browser, name);
+  const noJs = await noJsOk(browser, name);
+
+  return pages && themes && noJs;
 }
 
 async function serverUp(): Promise<boolean> {
