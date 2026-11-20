@@ -4,8 +4,10 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "dev": "zola serve --drafts",
-    "check": "tsc && node tools/check.ts"
+    "dev": "tsc && (tsc --watch --preserveWatchOutput & zola serve --drafts)",
+    "build": "tsc && zola build",
+    "test": "node --test 'src/**/*.test.ts'",
+    "check": "tsc && tsc -p tools && pnpm test && node tools/check.ts"
   },
   "devEngines": {
     "packageManager": {

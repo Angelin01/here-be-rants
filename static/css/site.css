@@ -23,6 +23,11 @@ Rules:
   --detail: #a89a80;
   --ember: #e0522b;
   --purple: #9b5de5;
+  --wood: #8a6a45;
+  --moat: #3b6ea5;
+  --grass: #4f7a3a;
+  --tree: #2f6b3a;
+  --flower: #c9a227;
 }
 
 * {
@@ -46,11 +51,73 @@ html {
   color: var(--bg);
 }
 
-main {
+/* Castle */
+
+#field {
+  position: relative;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+#walls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* No-JS fallback: a plain readable column. walls.ts adds .walled and positions it in the courtyard */
+#court {
   max-width: 72ch;
   margin: var(--lh) auto;
   padding: 0 1ch;
 }
+
+#field.walled #court {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+}
+
+#walls .moat {
+  color: var(--moat);
+}
+
+#walls .grass {
+  color: var(--grass);
+}
+
+#walls .tree {
+  color: var(--tree);
+}
+
+#walls .flower {
+  color: var(--flower);
+}
+
+#walls .ember {
+  color: var(--ember);
+}
+
+#walls .purple {
+  color: var(--purple);
+}
+
+#walls .detail {
+  color: var(--detail);
+}
+
+#walls .wood {
+  color: var(--wood);
+}
+
+#walls .stone {
+  color: var(--stone);
+}
+
+/* Content */
 
 main :is(h1, h2, h3, h4, p, ul, ol, pre, blockquote, table, hr, img) {
   margin-bottom: var(--lh);
@@ -156,17 +223,17 @@ code {
   color: var(--detail);
 }
 
-pre {
+main pre {
   padding: var(--lh) 2ch;
   white-space: pre-wrap;
 }
 
-pre code {
+main pre code {
   color: inherit;
 }
 
 /* Dracula's comment color is too dim on our background. Its colors are inline styles, hence !important */
-pre [style*="#6272A4"] {
+main pre [style*="#6272A4"] {
   color: var(--dim) !important;
 }
 
