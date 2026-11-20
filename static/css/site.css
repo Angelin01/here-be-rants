@@ -123,6 +123,7 @@ html {
 
 /* Content */
 
+/* Elements only: a class in here would outrank the nested list exception below */
 #court :is(header, footer nav, h1, h2, h3, h4, p, ul, ol, pre, blockquote, table, hr, img) {
   margin-bottom: var(--lh);
 }
@@ -379,4 +380,14 @@ img {
   flex: none;
   padding-left: 1ch;
   color: var(--dim);
+}
+
+/* Posts */
+
+/* The empty span keeps a lone "newer" link on the right */
+.pager {
+  display: flex;
+  justify-content: space-between;
+  gap: 2ch;
+  margin-bottom: var(--lh);
 }

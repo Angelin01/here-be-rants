@@ -2,9 +2,44 @@
 {% block title %}{{ page.title }} - {{ config.title }}{% endblock %}
 {% block description %}{{ page.description | default(value=config.description) }}{% endblock %}
 {% block content %}
+{#- Posts sort newest first, so Zola's "lower" is the newer neighbour and "higher" the older one -#}
+{% set newer = page.lower %}
+{% set older = page.higher %}
+{% set date_format = "%Y.%m.%d" %}
 <article>
 <h1>{{ page.title }}</h1>
-{% if page.date %}<p><time datetime="{{ page.date }}">{{ page.date }}</time></p>{% endif %}
+{% if page.date %}
+<p class="meta">
+<time datetime="{{ page.date }}">{{ page.date | date(format=date_format) }}</time>
+{%- if page.updated %} · updated <time datetime="{{ page.updated }}">{{ page.updated | date(format=date_format) }}</time>{% endif %}
+ · {{ page.reading_time }} min read
+{%- if page.taxonomies.tags %} ·{% for tag in page.taxonomies.tags %} <a href="{{ get_taxonomy_url(kind='tags', name=tag) }}">#{{ tag }}</a>{% endfor %}{% endif %}
+</p>
+{% endif %}
+{% if page.toc | length >= 3 %}
+<nav class="toc" aria-label="Contents">
+<span class="meta">Contents</span>
+<ul>
+{% for h in page.toc %}
+<li><a href="{{ h.permalink }}">{{ h.title }}</a>
+{%- if h.children %}
+<ul>
+{% for child in h.children %}
+<li><a href="{{ child.permalink }}">{{ child.title }}</a></li>
+{% endfor %}
+</ul>
+{%- endif %}
+</li>
+{% endfor %}
+</ul>
+</nav>
+{% endif %}
 {{ page.content | safe }}
 </article>
+{% if newer or older %}
+<nav class="pager" aria-label="More posts">
+{% if older %}<a href="{{ older.permalink }}"><span aria-hidden="true">« </span>{{ older.title }}</a>{% else %}<span></span>{% endif %}
+{% if newer %}<a href="{{ newer.permalink }}">{{ newer.title }}<span aria-hidden="true"> »</span></a>{% endif %}
+</nav>
+{% endif %}
 {% endblock %}
