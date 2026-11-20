@@ -12,7 +12,7 @@ const SHOTS = path.join(ROOT, 'shots');
 const HOST = '127.0.0.1';
 const PORT = 4111;
 const BASE = `http://${HOST}:${PORT}`;
-const PAGES = ['/', '/posts/kitchen-sink/', '/about/', '/tags/'];
+const PAGES = ['/', '/posts/kitchen-sink/', '/about/', '/tags/', '/does/not/exist/should/http404/'];
 const NOJS_PAGE = '/posts/kitchen-sink/';
 const WIDTHS = [390, 768, 1280];
 const VIEWPORT_HEIGHT = 900;
@@ -197,7 +197,6 @@ async function waitForServer() {
   throw new Error('zola serve did not start');
 }
 
-// Binding is the only way to know nothing else holds the port
 async function checkPortAvailable(): Promise<boolean> {
   return new Promise(resolve => {
     const probe = net.createServer();
@@ -214,12 +213,12 @@ async function main(args: string[]): Promise<number> {
   }
   const engines = args.length > 0 ? args.map(a => ENGINES[a]) : Object.values(ENGINES);
 
-  // Our zola couldn't start, and we'd silently test whatever stale server is there instead
   if (!(await checkPortAvailable())) {
     console.error(`port ${PORT} is taken, a leftover zola serve?`);
     return 2;
   }
 
+  fs.rmSync(SHOTS, { recursive: true, force: true });
   fs.mkdirSync(SHOTS, { recursive: true });
   const zola = childProcess.spawn('zola', ['serve', '--drafts', '--port', String(PORT)], { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
 

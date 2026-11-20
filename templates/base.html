@@ -1,3 +1,5 @@
+{#- The 404 page gets no current_path or current_url -#}
+{% set path = current_path | default(value='/404') -%}
 <!doctype html>
 <html lang="en">
 <head>
@@ -5,17 +7,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}{{ config.title }}{% endblock %}</title>
 <meta name="description" content="{% block description %}{{ config.description }}{% endblock %}">
-<link rel="canonical" href="{{ current_url }}">
+{% if current_url is defined %}<link rel="canonical" href="{{ current_url }}">{% endif %}
 <link rel="preload" href="{{ get_url(path='fonts/WebPlus_IBM_VGA_9x16.woff') }}" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="{{ get_url(path='css/site.css') }}">
 <link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="{{ get_url(path='atom.xml') }}">
 <script type="module" src="{{ get_url(path='js/walls.js') }}"></script>
 </head>
-<body data-seed="{{ current_path }}">
+<body data-seed="{{ path }}">
 <div id="field">
 <pre id="walls" aria-hidden="true" data-nosnippet></pre>
 <div id="court">
-{% if current_path != "/" %}
+{% if path != "/" %}
 <header>
 <nav aria-label="Breadcrumb"><a href="{{ get_url(path='@/_index.md') }}"><span aria-hidden="true">« </span>{{ config.title }}</a></nav>
 </header>

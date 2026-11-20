@@ -344,6 +344,10 @@ img {
   color: var(--dim);
 }
 
+.centered {
+  text-align: center;
+}
+
 /* Post list */
 
 .posts {

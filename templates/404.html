@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Here were rants - {{ config.title }}{% endblock %}
+{% block description %}The page you're after is gone, or never existed{% endblock %}
+{% block content %}
+<h1>Here were rants</h1>
+<p>There were rants when you were a boy. All that's left now is scorch marks and a faint smell of plasma.</p>
+<p>While walking through the ruins, you stumble upon a weird piece of parchment:</p>
+<pre>Item #: RANT-404
+Object Class: <del>Safe</del> Neutralized
+
+Special Containment Procedures: None. RANT-404 no longer requires containment. The castle walls and the moat will receive no further maintenance.
+
+Description: RANT-404 was a page of this site. Since the incident of ████-██-██ it has been ██████████. Expeditions RANT-404-E1 and RANT-404-E2 located only ███████ and scorch marks.
+</pre>
+<p>You've wandered too far off the path, adventurer. You better...</p>
+<p class="centered"><span aria-hidden="true">» </span><a href="{{ get_url(path='@/_index.md') }}">get back to the keep</a><span aria-hidden="true"> «</span></p>
+{% endblock %}
