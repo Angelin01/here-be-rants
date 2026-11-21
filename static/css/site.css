@@ -95,6 +95,17 @@ html {
   max-width: none;
 }
 
+/* walls.ts moves the footer below the keep, where the keep already separates it from the content */
+#field.walled footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+#field.walled footer hr {
+  display: none;
+}
+
 /* Content */
 
 /* Elements only: a class in here would outrank the nested list exception below */

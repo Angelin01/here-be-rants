@@ -414,12 +414,18 @@ export function layout(cols: number): Layout {
   };
 }
 
-export function castle(l: Layout, contentRows: number, rand: Rand, scenery: Scenery): Painting {
+// Courtyard rows, counted from the gate: content, the road up to the keep, the keep, then the footer below it
+function courtyard(l: Layout, contentRows: number, footerRows: number) {
   const s = style(l.wide, l.courtWidth);
   const keepRows = l.courtWidth >= KEEP[0].length ? KEEP.length : 0;
-  // Courtyard rows, counted from the gate
   const keepY = s.gateRows + contentRows + ROAD_ROWS;
-  const courtRows = keepY + keepRows + 1;
+  const footerY = keepY + keepRows + 1;
+  const courtRows = footerY + (footerRows > 0 ? footerRows + 1 : 0);
+  return { s, keepRows, keepY, footerY, courtRows };
+}
+
+export function castle(l: Layout, contentRows: number, rand: Rand, scenery: Scenery, footerRows = 0): Painting {
+  const { s, keepRows, keepY, courtRows } = courtyard(l, contentRows, footerRows);
   // Grid rows, counted from the top
   const gateY = s.meadowRows + 1;
   const backY = l.courtY + courtRows;
@@ -453,6 +459,11 @@ export function castle(l: Layout, contentRows: number, rand: Rand, scenery: Scen
   s.back.forEach((row, i) => put(canvas, backY + i, left, row));
 
   return toPainting(canvas);
+}
+
+// Grid row where the footer goes, between the keep and the back wall
+export function footerRow(l: Layout, contentRows: number): number {
+  return l.courtY + courtyard(l, contentRows, 0).footerY;
 }
 
 export function outline(painting: Painting, frames: Cells[], bars: Cells[]): Painting {

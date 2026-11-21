@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { castle, layout, outline, type Painting, type Scenery } from './castle.ts';
+import { castle, footerRow, layout, outline, type Painting, type Scenery } from './castle.ts';
 import { rng } from './random.ts';
 
 const POND_TINT = 'pond';
@@ -101,6 +101,25 @@ test('when the content grows, then side towers never reach the keep', () => {
     const lastTowerRow = rows.findLastIndex(r => r.includes(towerBottom) && !r.includes(backWallCorner));
     assert.ok(keepRow > 0, `contentRows=${contentRows}: no keep`);
     assert.ok(lastTowerRow < keepRow - 2, `contentRows=${contentRows}: tower at ${lastTowerRow}, keep at ${keepRow}`);
+  }
+});
+
+test('given a footer, when building, then it gets empty rows between the keep and the back wall', () => {
+  const footerRows = 3;
+  const keepBottom = '╚═══╝                    ╚═══╝';
+  const backWallTop = '╔╩══╩═╦';
+
+  for (let cols = 80; cols <= MAX_COLS; cols += 10) {
+    const l = layout(cols);
+    const rows = castle(l, 40, rng('seed'), NO_FLUFF, footerRows).rows;
+    const top = footerRow(l, 40);
+    const court = (r: number) => [...rows[r]].slice(l.content.col, l.content.col + l.content.width).join('');
+
+    assert.ok(top > rows.findIndex(r => r.includes(keepBottom)), `cols=${cols}: footer above the keep`);
+    assert.ok(top + footerRows < rows.findIndex(r => r.includes(backWallTop)), `cols=${cols}: footer runs into the back wall`);
+    for (let r = top; r < top + footerRows; r++) {
+      assert.equal(court(r).trim(), '', `cols=${cols} row ${r}: something drawn where the footer goes`);
+    }
   }
 });
 

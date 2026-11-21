@@ -1,4 +1,4 @@
-import { castle, layout, outline, type Cells } from './castle.ts';
+import { castle, footerRow, layout, outline, type Cells } from './castle.ts';
 import { rng } from './random.ts';
 import { AUTO, closeLikeAMenu, renderPicker } from './picker.ts';
 import { DEFAULT_THEMES, THEMES, modeOf, themeFor, type Mode } from './themes.ts';
@@ -26,6 +26,7 @@ const COLOR_OF = new Map(Object.entries(GLYPH_COLORS).flatMap(([color, glyphs]) 
 const field = document.getElementById('field')!;
 const walls = document.getElementById('walls')!;
 const court = document.getElementById('court')!;
+const footer = court.querySelector('footer');
 const picker = document.querySelector<HTMLDetailsElement>('#themes');
 const seed = document.body.dataset.seed ?? location.pathname;
 
@@ -107,10 +108,14 @@ function paint() {
   court.style.top = `${l.content.row * lh}px`;
   court.style.width = `${l.content.width * cw}px`;
 
-  // Only measurable now that the court has its final width
+  // Only measurable now that the court has its final width. The footer is out of the flow by now, see site.css
   snapToRows(lh);
   const contentRows = Math.ceil(court.offsetHeight / lh);
-  const painting = castle(l, contentRows, rng(seed), THEMES[themeName]);
+  const footerRows = footer ? Math.ceil(footer.offsetHeight / lh) : 0;
+  if (footer) {
+    footer.style.top = `${(footerRow(l, contentRows) - l.content.row) * lh}px`;
+  }
+  const painting = castle(l, contentRows, rng(seed), THEMES[themeName], footerRows);
 
   const origin = field.getBoundingClientRect();
   const frames = [...court.querySelectorAll('pre')].map(el => cellsOf(el, origin, cell));
