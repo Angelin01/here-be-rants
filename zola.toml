@@ -9,6 +9,7 @@ taxonomies = [{ name = "tags" }]
 
 [markdown]
 insert_anchor_links = "left"
+lazy_async_image = true
 
 [markdown.highlighting]
 style = "class"

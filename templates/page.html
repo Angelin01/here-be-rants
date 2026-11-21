@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ page.title }} - {{ config.title }}{% endblock %}
-{% block description %}{{ page.description | default(value=config.description) }}{% endblock %}
+{% block description %}{{ page.description or config.description }}{% endblock %}
 {% block content %}
 {#- Posts sort newest first, so Zola's "lower" is the newer neighbour and "higher" the older one -#}
 {% set newer = page.lower %}

@@ -7,7 +7,8 @@
     "dev": "tsc && (tsc --watch --preserveWatchOutput & zola serve --drafts)",
     "build": "tsc && zola build",
     "test": "node --test 'src/**/*.test.ts'",
-    "check": "tsc && tsc -p tools && pnpm test && node tools/check.ts"
+    "check": "tsc && tsc -p tools && pnpm test && node tools/check.ts",
+    "og-image": "tsc && node tools/og-image.ts"
   },
   "devEngines": {
     "packageManager": {
