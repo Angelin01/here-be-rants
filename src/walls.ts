@@ -9,20 +9,17 @@ const SAVED_THEME_KEY = 'theme';
 // Every variable any theme sets, so switching themes can clear the previous one's leftovers
 const THEME_VARS = new Set(Object.values(THEMES).flatMap(t => Object.keys(t.colors)));
 
-// Anything not listed is painted in the default text color
-const GLYPH_CLASSES: Record<string, string> = {
+// CSS variable per castle glyph. Fluff brings its own tint, anything else uses the text color
+const GLYPH_COLORS: Record<string, string> = {
   moat: '≈',
-  grass: `"',.`,
-  tree: '♣♠τ',
-  flower: '*°',
+  tree: '♣τ',
   ember: '☼',
-  purple: '►',
+  purple: '►│┌┐└┘─',
   detail: '⌂○•',
   wood: '+≡╤',
-  code: '│┌┐└┘─',
   stone: '═║╔╗╚╝╠╣╦╩╧╢╟\\/',
 };
-const CLASS_OF = new Map(Object.entries(GLYPH_CLASSES).flatMap(([cls, glyphs]) => [...glyphs].map(g => [g, cls] as const)));
+const COLOR_OF = new Map(Object.entries(GLYPH_COLORS).flatMap(([color, glyphs]) => [...glyphs].map(g => [g, color] as const)));
 
 const field = document.getElementById('field')!;
 const walls = document.getElementById('walls')!;
@@ -53,23 +50,23 @@ function measure(): Cell {
 }
 
 // Spaces join whatever run they're in, for fewer spans
-function toHtml(row: string): string {
+function toHtml(row: string, tints: string[]): string {
   let out = '';
-  let cls = '';
+  let color = '';
   let run = '';
   const flush = () => {
-    out += cls ? `<span class="${cls}">${run}</span>` : run;
+    out += color ? `<span style="color: var(--${color})">${run}</span>` : run;
   };
 
-  for (const g of row) {
-    const next = g === ' ' ? cls : (CLASS_OF.get(g) ?? '');
-    if (next !== cls) {
+  [...row].forEach((glyph, i) => {
+    const next = glyph === ' ' ? color : (tints[i] || COLOR_OF.get(glyph) || '');
+    if (next !== color) {
       flush();
-      cls = next;
+      color = next;
       run = '';
     }
-    run += g;
-  }
+    run += glyph;
+  });
   flush();
 
   return out;
@@ -111,13 +108,14 @@ function paint() {
   // Only measurable now that the court has its final width
   snapToRows(lh);
   const contentRows = Math.ceil(court.offsetHeight / lh);
-  const rows = castle(l, contentRows, rng(seed), THEMES[themeName].fluff);
+  const painting = castle(l, contentRows, rng(seed), THEMES[themeName]);
 
   const origin = field.getBoundingClientRect();
   const frames = [...court.querySelectorAll('pre')].map(el => cellsOf(el, origin, cell));
   const bars = [...court.querySelectorAll('blockquote')].map(el => cellsOf(el, origin, cell));
 
-  walls.innerHTML = outline(rows, frames, bars).map(toHtml).join('\n');
+  const { rows, tints } = outline(painting, frames, bars);
+  walls.innerHTML = rows.map((row, r) => toHtml(row, tints[r])).join('\n');
   walls.dataset.cols = String(l.cols);
   field.style.height = `${rows.length * lh}px`;
 }

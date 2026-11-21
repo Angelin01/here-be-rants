@@ -82,46 +82,6 @@ html {
   max-width: none;
 }
 
-#walls .moat {
-  color: var(--moat);
-}
-
-#walls .grass {
-  color: var(--grass);
-}
-
-#walls .tree {
-  color: var(--tree);
-}
-
-#walls .flower {
-  color: var(--flower);
-}
-
-#walls .ember {
-  color: var(--ember);
-}
-
-#walls .purple {
-  color: var(--purple);
-}
-
-#walls .detail {
-  color: var(--detail);
-}
-
-#walls .wood {
-  color: var(--wood);
-}
-
-#walls .stone {
-  color: var(--stone);
-}
-
-#walls .code {
-  color: var(--purple);
-}
-
 /* Content */
 
 /* Elements only: a class in here would outrank the nested list exception below */
