@@ -1,9 +1,13 @@
 import { castle, layout, outline, type Cells } from './castle.ts';
 import { rng } from './random.ts';
-import { DEFAULT_THEME, THEMES, themeFor, type Theme } from './themes.ts';
+import { AUTO, closeLikeAMenu, renderPicker } from './picker.ts';
+import { DEFAULT_THEME, THEMES, themeFor } from './themes.ts';
 
 const PROBE_CHARS = 100;
 const ROW_TOLERANCE = 0.01;
+const SAVED_THEME_KEY = 'theme';
+// Every variable any theme sets, so switching themes can clear the previous one's leftovers
+const THEME_VARS = new Set(Object.values(THEMES).flatMap(t => Object.keys(t.colors)));
 
 // Anything not listed is painted in the default text color
 const GLYPH_CLASSES: Record<string, string> = {
@@ -23,10 +27,13 @@ const CLASS_OF = new Map(Object.entries(GLYPH_CLASSES).flatMap(([cls, glyphs]) =
 const field = document.getElementById('field')!;
 const walls = document.getElementById('walls')!;
 const court = document.getElementById('court')!;
+const picker = document.querySelector<HTMLDetailsElement>('#themes');
 const seed = document.body.dataset.seed ?? location.pathname;
 
 let paintQueued = false;
-let theme: Theme = THEMES[DEFAULT_THEME];
+let themeName = DEFAULT_THEME;
+// Kept in memory too, so picking still works for the visit when storage is blocked
+let chosenTheme: string | null = null;
 
 interface Cell {
   cw: number;
@@ -104,7 +111,7 @@ function paint() {
   // Only measurable now that the court has its final width
   snapToRows(lh);
   const contentRows = Math.ceil(court.offsetHeight / lh);
-  const rows = castle(l, contentRows, rng(seed), theme.fluff);
+  const rows = castle(l, contentRows, rng(seed), THEMES[themeName].fluff);
 
   const origin = field.getBoundingClientRect();
   const frames = [...court.querySelectorAll('pre')].map(el => cellsOf(el, origin, cell));
@@ -115,16 +122,41 @@ function paint() {
   field.style.height = `${rows.length * lh}px`;
 }
 
-function chooseTheme(): string {
-  const wanted = new URLSearchParams(location.search).get('theme') || document.body.dataset.theme || themeFor(seed);
+// Storage throws in some private modes and with blocked site data, the choice then only lasts the visit
+function savedTheme(): string | null {
+  try {
+    return localStorage.getItem(SAVED_THEME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveTheme(name: string) {
+  try {
+    if (name === AUTO) {
+      localStorage.removeItem(SAVED_THEME_KEY);
+    } else {
+      localStorage.setItem(SAVED_THEME_KEY, name);
+    }
+  } catch {
+    // Nothing to do, see savedTheme()
+  }
+}
+
+function resolveTheme(): string {
+  const wanted = new URLSearchParams(location.search).get('theme') || chosenTheme || document.body.dataset.theme || themeFor(seed);
   return wanted in THEMES ? wanted : DEFAULT_THEME;
 }
 
 function applyTheme(name: string) {
-  theme = THEMES[name];
+  themeName = name;
   const root = document.documentElement;
   root.dataset.theme = name;
-  for (const [key, value] of Object.entries(theme.colors)) {
+
+  for (const key of THEME_VARS) {
+    root.style.removeProperty(`--${key}`);
+  }
+  for (const [key, value] of Object.entries(THEMES[name].colors)) {
     root.style.setProperty(`--${key}`, value);
   }
 }
@@ -142,13 +174,48 @@ function schedulePaint() {
   });
 }
 
+function refreshPicker() {
+  if (!picker) {
+    return;
+  }
+
+  renderPicker(picker, { names: Object.keys(THEMES), chosen: chosenTheme ?? AUTO, shown: themeName }, pickTheme);
+}
+
+function pickTheme(name: string) {
+  chosenTheme = name === AUTO ? null : name;
+  saveTheme(name);
+
+  // ?theme= outranks the saved choice, so it has to go or the choice would seem to do nothing
+  const params = new URLSearchParams(location.search);
+  params.delete('theme');
+  history.replaceState(null, '', location.pathname + (params.size > 0 ? `?${params}` : ''));
+
+  applyTheme(resolveTheme());
+  refreshPicker();
+  schedulePaint();
+}
+
+function showPicker() {
+  if (!picker) {
+    return;
+  }
+
+  closeLikeAMenu(picker);
+  refreshPicker();
+  picker.hidden = false;
+  picker.closest('header')!.hidden = false;
+}
+
 function repaintOnResize() {
   addEventListener('resize', schedulePaint);
   new ResizeObserver(schedulePaint).observe(court);
 }
 
 function main() {
-  applyTheme(chooseTheme());
+  chosenTheme = savedTheme();
+  applyTheme(resolveTheme());
+  showPicker();
   repaintOnResize();
   document.fonts.ready.then(schedulePaint);
   schedulePaint();

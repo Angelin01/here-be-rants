@@ -17,11 +17,11 @@
 <div id="field">
 <pre id="walls" aria-hidden="true" data-nosnippet></pre>
 <div id="court">
-{% if path != "/" %}
-<header>
-<nav aria-label="Breadcrumb"><a href="{{ get_url(path='@/_index.md') }}"><span aria-hidden="true">« </span>{{ config.title }}</a></nav>
+{#- Home has nothing in the header but the theme picker, which needs JS. walls.ts unhides it -#}
+<header{% if path == "/" %} hidden{% endif %}>
+{% if path != "/" %}<nav aria-label="Breadcrumb"><a href="{{ get_url(path='@/_index.md') }}"><span aria-hidden="true">« </span>{{ config.title }}</a></nav>{% endif %}
+<details id="themes" hidden></details>
 </header>
-{% endif %}
 <main>
 {% block content %}{% endblock %}
 </main>

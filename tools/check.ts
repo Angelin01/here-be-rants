@@ -5,7 +5,7 @@ import * as net from 'node:net';
 import * as path from 'node:path';
 import { chromium, firefox, type Browser, type BrowserType, type Page } from 'playwright';
 import { AxeBuilder } from '@axe-core/playwright';
-import { THEMES } from '../src/themes.ts';
+import { DEFAULT_THEME, THEMES } from '../src/themes.ts';
 
 const ROOT = path.join(import.meta.dirname, '..');
 const SHOTS = path.join(ROOT, 'shots');
@@ -118,6 +118,15 @@ async function waitTwoFrames(page: Page) {
   await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 }
 
+function report(name: string, problems: string[]): boolean {
+  console.log(`${problems.length > 0 ? 'FAIL' : 'ok  '} ${name}`);
+  for (const p of problems.slice(0, MAX_PROBLEMS_SHOWN)) {
+    console.log(`     ${p}`);
+  }
+
+  return problems.length === 0;
+}
+
 interface PageOptions {
   js?: boolean;
   theme?: string;
@@ -158,12 +167,7 @@ async function pageOk(page: Page, urlPath: string, name: string, { js = true, th
 
   await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: true });
 
-  console.log(`${problems.length > 0 ? 'FAIL' : 'ok  '} ${name}`);
-  for (const p of problems.slice(0, MAX_PROBLEMS_SHOWN)) {
-    console.log(`     ${p}`);
-  }
-
-  return problems.length === 0;
+  return report(name, problems);
 }
 
 async function pagesOk(browser: Browser, name: string): Promise<boolean> {
@@ -207,12 +211,47 @@ async function noJsOk(browser: Browser, name: string): Promise<boolean> {
   return ok;
 }
 
+// Home is pinned to the default theme, so auto lands there
+async function pickerOk(browser: Browser, name: string): Promise<boolean> {
+  const other = Object.keys(THEMES).find(t => t !== DEFAULT_THEME)!;
+  const width = WIDTHS[WIDTHS.length - 1];
+  const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT } });
+  const page = await context.newPage();
+  const shown = () => page.evaluate(() => document.documentElement.dataset.theme);
+  const pick = async (option: string) => {
+    await page.click('#themes summary');
+    await page.getByRole('button', { name: option, exact: true }).click();
+  };
+
+  const problems: string[] = [];
+  await page.goto(BASE + '/');
+
+  await pick(other);
+  if (await shown() !== other) {
+    problems.push(`picking ${other} showed ${await shown()}`);
+  }
+
+  await page.reload();
+  if (await shown() !== other) {
+    problems.push(`${other} was forgotten after a reload, showing ${await shown()}`);
+  }
+
+  await pick('auto');
+  if (await shown() !== DEFAULT_THEME) {
+    problems.push(`picking auto on home showed ${await shown()}, expected ${DEFAULT_THEME}`);
+  }
+
+  await context.close();
+  return report(`${name}-picker`, problems);
+}
+
 async function engineOk(browser: Browser, name: string): Promise<boolean> {
   const pages = await pagesOk(browser, name);
   const themes = await themesOk(browser, name);
+  const picker = await pickerOk(browser, name);
   const noJs = await noJsOk(browser, name);
 
-  return pages && themes && noJs;
+  return pages && themes && picker && noJs;
 }
 
 async function serverUp(): Promise<boolean> {

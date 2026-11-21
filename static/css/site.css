@@ -34,6 +34,11 @@ Rules:
   color: inherit;
 }
 
+/* Any display rule, like the header's flex, beats the browser's own [hidden] rule */
+[hidden] {
+  display: none !important;
+}
+
 html {
   background: var(--bg);
   color: var(--text);
@@ -333,6 +338,57 @@ img {
 
 .footnote-definition p {
   margin-bottom: 0;
+}
+
+/* Header and theme picker */
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  column-gap: 2ch;
+}
+
+#themes {
+  position: relative;
+  /* Stays on the right on the home page, where there's no breadcrumb */
+  margin-left: auto;
+}
+
+#themes summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--purple);
+}
+
+#themes summary::-webkit-details-marker {
+  display: none;
+}
+
+#themes[open] summary {
+  color: var(--text);
+}
+
+#themes .menu {
+  position: absolute;
+  top: var(--lh);
+  right: 0;
+  z-index: 1;
+  white-space: pre;
+  background: var(--bg);
+  color: var(--purple);
+}
+
+#themes .menu button {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--text);
+}
+
+#themes .menu button:hover,
+#themes .menu button:focus-visible {
+  color: var(--purple);
 }
 
 /* Pages */
