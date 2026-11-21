@@ -198,15 +198,31 @@ main pre code {
   color: inherit;
 }
 
-/* Dracula's comment color is too dim on our background. Its colors are inline styles, hence !important */
-main pre [style*="#6272A4"] {
-  color: var(--dim) !important;
+/* The frame drawn by walls.ts would be covered by the background. Without JS the background stays */
+#field.walled main pre {
+  background: none;
 }
 
-/* The frame drawn by walls.ts would be covered by Dracula's background. Without JS the background stays */
-#field.walled main pre {
-  background: none !important;
+/*
+Code colors. Zola tags every token with a class per theme (z-d-* for dracula, z-l-* for github-light), numbered by
+that theme's palette. Starting colors come from the giallo-*.css files Zola writes to public/
+*/
+.z-d-code {
+  color: #f8f8f2;
+  background: #282a36;
 }
+
+.z-d-1 { color: #50fa7b; }
+/* Dracula's comment color, too dim on our background */
+.z-d-2 { color: var(--dim); }
+.z-d-3 { color: #8be9fd; }
+.z-d-4 { color: #8be9fe; }
+.z-d-5 { color: #bd93f9; }
+.z-d-6 { color: #e9f284; }
+.z-d-7 { color: #f1fa8c; }
+.z-d-8 { color: #ff5555; }
+.z-d-9 { color: #ff79c6; }
+.z-d-10 { color: #ffb86c; }
 
 /* Blocks */
 
