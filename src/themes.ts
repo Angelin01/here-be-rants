@@ -7,9 +7,14 @@ export interface Theme extends Scenery {
   colors: Record<string, string>;
   // Out of the seeded rotation, so only a page pin or the picker shows it
   pinnedOnly?: boolean;
+  // Light themes swap the page itself to the light palette in site.css
+  light?: boolean;
 }
 
-export const DEFAULT_THEME = 'meadow';
+export type Mode = 'dark' | 'light';
+
+// Also what a page gets when it pins the theme "default"
+export const DEFAULT_THEMES: Record<Mode, string> = { dark: 'meadow', light: 'parchment' };
 
 export const THEMES: Record<string, Theme> = {
   meadow: {
@@ -50,7 +55,9 @@ export const THEMES: Record<string, Theme> = {
       obsidian: '#5e3a78',
     },
   },
+  // Snow is the page itself, fluff is the drifts and shadows on it
   winter: {
+    light: true,
     density: 0.45,
     fluff: [
       { glyphs: `.,'`, tint: 'snow', weight: 50 },
@@ -61,12 +68,13 @@ export const THEMES: Record<string, Theme> = {
     ],
     pond: { glyph: '░', tint: 'ice' },
     colors: {
-      moat: '#7fa8cf',
-      tree: '#2f5a3f',
-      snow: '#c9d3df',
-      'snow-shadow': '#5d7593',
-      snowflake: '#f2f6fa',
-      ice: '#9cc4e4',
+      bg: '#d6dde5',
+      moat: '#4f7fae',
+      tree: '#2a4f37',
+      snow: '#a6b4c5',
+      'snow-shadow': '#6a7f9a',
+      snowflake: '#f4f7fa',
+      ice: '#5f8cb8',
     },
   },
   // Overrides stone and wood as well so the castle itself goes blue
@@ -90,6 +98,7 @@ export const THEMES: Record<string, Theme> = {
     },
   },
   desert: {
+    light: true,
     fluff: [
       { glyphs: `.,'`, tint: 'sand', weight: 60 },
       { glyphs: '~', tint: 'dune', weight: 18 },
@@ -100,13 +109,32 @@ export const THEMES: Record<string, Theme> = {
     // Dry, so they blend into the sand like the moat does
     pond: { glyph: '░', tint: 'moat' },
     colors: {
-      bg: '#120f0a',
-      moat: '#8a7650',
-      tree: '#5f8a3a',
-      sand: '#c9b27a',
-      dune: '#a8905c',
-      rock: '#7a5a3c',
-      scrub: '#7d8a4a',
+      bg: '#f2ec91',
+      moat: '#b08a4a',
+      tree: '#3f7027',
+      sand: '#c9a24a',
+      dune: '#b48a34',
+      rock: '#7d5636',
+      scrub: '#6f7c38',
+    },
+  },
+  parchment: {
+    light: true,
+    fluff: [
+      { glyphs: `.,'"`, tint: 'ink-faded', weight: 64 },
+      { glyphs: '♣♠', tint: 'tree', weight: 20 },
+      { glyphs: '~', tint: 'moat', weight: 6 },
+      { glyphs: '▲', tint: 'ink', weight: 5 },
+      { glyphs: '*', tint: 'ink-red', weight: 3 },
+    ],
+    pond: { glyph: '≈', tint: 'moat' },
+    colors: {
+      bg: '#f7f2e4',
+      moat: '#55748f',
+      tree: '#4f4029',
+      ink: '#5e4d33',
+      'ink-faded': '#c2b08e',
+      'ink-red': '#9a4a28',
     },
   },
   // Pinned on the 404 page
@@ -160,8 +188,15 @@ export const THEMES: Record<string, Theme> = {
   },
 };
 
-export const ROTATION = Object.keys(THEMES).filter(name => !THEMES[name].pinnedOnly);
+export function modeOf(name: string): Mode {
+  return THEMES[name].light ? 'light' : 'dark';
+}
 
-export function themeFor(seed: string): string {
-  return ROTATION[Math.floor(rng(seed)() * ROTATION.length)];
+export function rotation(mode: Mode): string[] {
+  return Object.keys(THEMES).filter(name => !THEMES[name].pinnedOnly && modeOf(name) === mode);
+}
+
+export function themeFor(seed: string, mode: Mode): string {
+  const names = rotation(mode);
+  return names[Math.floor(rng(seed)() * names.length)];
 }

@@ -1,23 +1,38 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs';
-import { ROTATION, THEMES, themeFor } from './themes.ts';
+import { DEFAULT_THEMES, THEMES, modeOf, rotation, themeFor, type Mode } from './themes.ts';
 
 const SEEDS = Array.from({ length: 200 }, (_, i) => `/posts/${i}/`);
 
-test('given many seeds, when picking themes, then every theme in the rotation gets picked, and only those', () => {
-  const picked = new Set(SEEDS.map(themeFor));
-  assert.deepEqual([...picked].sort(), [...ROTATION].sort());
+const MODES: Mode[] = ['dark', 'light'];
+
+test('given many seeds, when picking themes in either mode, then every theme of that rotation gets picked, and only those', () => {
+  for (const mode of MODES) {
+    const picked = new Set(SEEDS.map(seed => themeFor(seed, mode)));
+    assert.deepEqual([...picked].sort(), rotation(mode).sort(), mode);
+  }
 });
 
-test('when listing the rotation, then pinned-only themes are left out', () => {
-  assert.ok(!ROTATION.includes('barren'));
-  assert.ok(ROTATION.includes('meadow'));
+test('when listing a rotation, then it only has themes of its mode and no pinned-only ones', () => {
+  for (const mode of MODES) {
+    assert.ok(rotation(mode).length > 0, mode);
+    for (const name of rotation(mode)) {
+      assert.equal(modeOf(name), mode, name);
+      assert.ok(!THEMES[name].pinnedOnly, name);
+    }
+  }
+});
+
+test('when checking the defaults, then each mode defaults to a theme of that mode', () => {
+  for (const mode of MODES) {
+    assert.equal(modeOf(DEFAULT_THEMES[mode]), mode);
+  }
 });
 
 test('given the same seed, when picking twice, then the theme matches', () => {
   for (const seed of SEEDS) {
-    assert.equal(themeFor(seed), themeFor(seed), seed);
+    assert.equal(themeFor(seed, 'dark'), themeFor(seed, 'dark'), seed);
   }
 });
 

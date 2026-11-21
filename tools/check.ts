@@ -5,7 +5,7 @@ import * as net from 'node:net';
 import * as path from 'node:path';
 import { chromium, firefox, type Browser, type BrowserType, type Page } from 'playwright';
 import { AxeBuilder } from '@axe-core/playwright';
-import { DEFAULT_THEME, THEMES } from '../src/themes.ts';
+import { DEFAULT_THEMES, THEMES } from '../src/themes.ts';
 
 const ROOT = path.join(import.meta.dirname, '..');
 const SHOTS = path.join(ROOT, 'shots');
@@ -13,7 +13,8 @@ const SHOTS = path.join(ROOT, 'shots');
 const HOST = '127.0.0.1';
 const PORT = 4111;
 const BASE = `http://${HOST}:${PORT}`;
-const PAGES = ['/', '/posts/kitchen-sink/', '/about/', '/tags/', '/does/not/exist/should/http404/'];
+const NOT_FOUND_PAGE = '/does/not/exist/should/http404/';
+const PAGES = ['/', '/posts/kitchen-sink/', '/about/', '/tags/', NOT_FOUND_PAGE];
 const NOJS_PAGE = '/posts/kitchen-sink/';
 const THEME_PAGE = '/posts/kitchen-sink/';
 const WIDTHS = [390, 768, 1280];
@@ -174,7 +175,7 @@ async function pagesOk(browser: Browser, name: string): Promise<boolean> {
   let ok = true;
 
   for (const width of WIDTHS) {
-    const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT } });
+    const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT }, colorScheme: 'dark' });
     const page = await context.newPage();
 
     for (const urlPath of PAGES) {
@@ -190,7 +191,7 @@ async function pagesOk(browser: Browser, name: string): Promise<boolean> {
 async function themesOk(browser: Browser, name: string): Promise<boolean> {
   let ok = true;
   const width = WIDTHS[WIDTHS.length - 1];
-  const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT } });
+  const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT }, colorScheme: 'dark' });
   const page = await context.newPage();
 
   for (const theme of Object.keys(THEMES)) {
@@ -213,9 +214,10 @@ async function noJsOk(browser: Browser, name: string): Promise<boolean> {
 
 // Home is pinned to the default theme, so auto lands there
 async function pickerOk(browser: Browser, name: string): Promise<boolean> {
-  const other = Object.keys(THEMES).find(t => t !== DEFAULT_THEME)!;
+  // A light theme from a dark OS, so the saved mode has to carry it through the reload
+  const other = DEFAULT_THEMES.light;
   const width = WIDTHS[WIDTHS.length - 1];
-  const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT } });
+  const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT }, colorScheme: 'dark' });
   const page = await context.newPage();
   const shown = () => page.evaluate(() => document.documentElement.dataset.theme);
   const pick = async (option: string) => {
@@ -237,21 +239,51 @@ async function pickerOk(browser: Browser, name: string): Promise<boolean> {
   }
 
   await pick('auto');
-  if (await shown() !== DEFAULT_THEME) {
-    problems.push(`picking auto on home showed ${await shown()}, expected ${DEFAULT_THEME}`);
+  if (await shown() !== DEFAULT_THEMES.dark) {
+    problems.push(`picking auto on home showed ${await shown()}, expected ${DEFAULT_THEMES.dark}`);
   }
 
   await context.close();
   return report(`${name}-picker`, problems);
 }
 
+async function lightOsOk(browser: Browser, name: string): Promise<boolean> {
+  const width = WIDTHS[WIDTHS.length - 1];
+  const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT }, colorScheme: 'light' });
+  const page = await context.newPage();
+  const shown = () => page.evaluate(() => `${document.documentElement.dataset.theme} (${document.documentElement.dataset.mode})`);
+  const problems: string[] = [];
+
+  await page.goto(BASE + '/');
+  const home = `${DEFAULT_THEMES.light} (light)`;
+  if (await shown() !== home) {
+    problems.push(`home showed ${await shown()}, expected ${home}`);
+  }
+
+  await page.goto(BASE + NOT_FOUND_PAGE);
+  if (await shown() !== 'barren (dark)') {
+    problems.push(`the 404 page showed ${await shown()}, expected its pinned barren (dark)`);
+  }
+
+  // With walls.ts gone, only the <head> script can have set the mode, which proves it happens before first paint
+  await page.route('**/js/walls.js', route => route.abort());
+  await page.goto(BASE + '/');
+  if (await page.evaluate(() => document.documentElement.dataset.mode) !== 'light') {
+    problems.push('the <head> script did not set the light mode');
+  }
+
+  await context.close();
+  return report(`${name}-light-os`, problems);
+}
+
 async function engineOk(browser: Browser, name: string): Promise<boolean> {
   const pages = await pagesOk(browser, name);
   const themes = await themesOk(browser, name);
   const picker = await pickerOk(browser, name);
+  const lightOs = await lightOsOk(browser, name);
   const noJs = await noJsOk(browser, name);
 
-  return pages && themes && picker && noJs;
+  return pages && themes && picker && lightOs && noJs;
 }
 
 async function serverUp(): Promise<boolean> {

@@ -1,10 +1,23 @@
 {#- The 404 page gets no current_path or current_url -#}
 {% set path = current_path | default(value='/404') -%}
 <!doctype html>
-<html lang="en">
+<html lang="en"{% block mode_pin %}{% endblock %}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+// Before anything renders, or light pages flash dark
+(() => {
+  const root = document.documentElement;
+  let saved = null;
+  try {
+    saved = localStorage.getItem('mode');
+  } catch {
+    // Storage blocked, fall through to the pin or OS
+  }
+  root.dataset.mode = saved || root.dataset.modePin || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+})();
+</script>
 <title>{% block title %}{{ config.title }}{% endblock %}</title>
 <meta name="description" content="{% block description %}{{ config.description }}{% endblock %}">
 {% if current_url is defined %}<link rel="canonical" href="{{ current_url }}">{% endif %}

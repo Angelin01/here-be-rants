@@ -1,11 +1,13 @@
 import { castle, layout, outline, type Cells } from './castle.ts';
 import { rng } from './random.ts';
 import { AUTO, closeLikeAMenu, renderPicker } from './picker.ts';
-import { DEFAULT_THEME, THEMES, themeFor } from './themes.ts';
+import { DEFAULT_THEMES, THEMES, modeOf, themeFor, type Mode } from './themes.ts';
 
 const PROBE_CHARS = 100;
 const ROW_TOLERANCE = 0.01;
 const SAVED_THEME_KEY = 'theme';
+// The <head> script in base.html reads this one before anything renders, keep the key in sync
+const SAVED_MODE_KEY = 'mode';
 // Every variable any theme sets, so switching themes can clear the previous one's leftovers
 const THEME_VARS = new Set(Object.values(THEMES).flatMap(t => Object.keys(t.colors)));
 
@@ -28,7 +30,7 @@ const picker = document.querySelector<HTMLDetailsElement>('#themes');
 const seed = document.body.dataset.seed ?? location.pathname;
 
 let paintQueued = false;
-let themeName = DEFAULT_THEME;
+let themeName = DEFAULT_THEMES.dark;
 // Kept in memory too, so picking still works for the visit when storage is blocked
 let chosenTheme: string | null = null;
 
@@ -133,23 +135,38 @@ function saveTheme(name: string) {
   try {
     if (name === AUTO) {
       localStorage.removeItem(SAVED_THEME_KEY);
+      localStorage.removeItem(SAVED_MODE_KEY);
     } else {
       localStorage.setItem(SAVED_THEME_KEY, name);
+      localStorage.setItem(SAVED_MODE_KEY, modeOf(name));
     }
   } catch {
     // Nothing to do, see savedTheme()
   }
 }
 
+function pageMode(): Mode {
+  const pinned = document.documentElement.dataset.modePin;
+  if (pinned === 'light' || pinned === 'dark') {
+    return pinned;
+  }
+
+  return matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
 function resolveTheme(): string {
-  const wanted = new URLSearchParams(location.search).get('theme') || chosenTheme || document.body.dataset.theme || themeFor(seed);
-  return wanted in THEMES ? wanted : DEFAULT_THEME;
+  const mode = pageMode();
+  const pinned = document.body.dataset.theme === 'default' ? DEFAULT_THEMES[mode] : document.body.dataset.theme;
+  const wanted = new URLSearchParams(location.search).get('theme') || chosenTheme || pinned || themeFor(seed, mode);
+  return wanted in THEMES ? wanted : DEFAULT_THEMES[mode];
 }
 
 function applyTheme(name: string) {
   themeName = name;
   const root = document.documentElement;
   root.dataset.theme = name;
+  // Usually the <head> script already guessed right, this settles the cases it can't know, like ?theme=
+  root.dataset.mode = modeOf(name);
 
   for (const key of THEME_VARS) {
     root.style.removeProperty(`--${key}`);

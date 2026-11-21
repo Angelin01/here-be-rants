@@ -26,6 +26,19 @@ Rules:
   --wood: #8a6a45;
 }
 
+/* Each theme still tints --bg from themes.ts */
+[data-mode="light"] {
+  --bg: #efe7d2;
+  --text: #1a1612;
+  --bright: #000000;
+  --dim: #4a433b;
+  --stone: #3a352f;
+  --detail: #4f3f2a;
+  --ember: #8f2c0c;
+  --purple: #52289a;
+  --wood: #583c20;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -223,6 +236,20 @@ that theme's palette. Starting colors come from the giallo-*.css files Zola writ
 .z-d-8 { color: #ff5555; }
 .z-d-9 { color: #ff79c6; }
 .z-d-10 { color: #ffb86c; }
+
+/* Light themes: tokens can have a dark class and no light one, so drop every dark color first.
+   github-light is made for white, so its colors are darkened to pass contrast on our backgrounds */
+[data-mode="light"] main pre { color: var(--text); }
+[data-mode="light"] main pre * { color: inherit; }
+[data-mode="light"] main pre .z-l-1 { color: #0050ad; }
+[data-mode="light"] main pre .z-l-2 { color: #032f62; }
+[data-mode="light"] main pre .z-l-3 { color: #155f2a; }
+[data-mode="light"] main pre .z-l-4 { color: #4a5159; }
+[data-mode="light"] main pre .z-l-5 { color: #4d555e; }
+[data-mode="light"] main pre .z-l-6 { color: #5c34a8; }
+[data-mode="light"] main pre .z-l-7 { color: #9c1923; }
+[data-mode="light"] main pre .z-l-8 { color: #a01d29; }
+[data-mode="light"] main pre .z-l-9 { color: #853a05; }
 
 /* Blocks */
 
