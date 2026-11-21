@@ -29,6 +29,46 @@ const TOWER_EVERY = 24;
 const TOWER_OFFSET = 18;
 const TORCH_EVERY = 8;
 const TORCH_OFFSET = 4;
+// Ponds go in the meadow beside the castle, at most one per band of rows on each side
+const POND_BAND = 30;
+const POND_CHANCE = 0.25;
+const POND_GAP = 2;
+
+// Each one also gets flipped left to right half the time
+const PONDS = [
+  art(`
+≈≈≈
+ ≈≈
+`),
+  art(`
+ ≈≈
+≈≈≈≈
+  ≈
+`),
+  art(`
+ ≈≈≈
+≈≈≈≈≈
+ ≈≈≈
+`),
+  art(`
+  ≈≈≈≈
+≈≈≈≈≈≈≈
+ ≈≈≈≈≈
+`),
+  art(`
+   ≈≈
+ ≈≈≈≈≈≈
+≈≈≈≈≈≈≈≈
+  ≈≈≈≈≈
+    ≈≈
+`),
+  art(`
+≈≈
+≈≈≈≈
+ ≈≈≈≈≈
+   ≈≈≈
+`),
+];
 
 const KEEP = art(String.raw`
 ╔═══╗                    ╔═══╗
@@ -95,6 +135,32 @@ interface Style {
   back: string[];
 }
 
+export interface Fluff {
+  glyphs: string;
+  // CSS variable for its color, without the leading --
+  tint: string;
+  // Chance relative to the other fluff of the same scenery
+  weight: number;
+}
+
+export interface Scenery {
+  fluff: Fluff[];
+  density?: number;
+  // Water, lava or whatever pools in the meadow
+  pond?: { glyph: string; tint: string };
+}
+
+export interface Painting {
+  rows: string[];
+  // CSS variable per cell, empty where the glyph's usual color applies
+  tints: string[][];
+}
+
+interface Canvas {
+  glyphs: string[][];
+  tints: string[][];
+}
+
 // A rectangle of grid cells, edges included
 export interface Cells {
   top: number;
@@ -153,25 +219,84 @@ function mirroredRows(half: number): (left: string, fill: Fill, right?: string) 
   return (left, fill, right = '') => withMirror(left + fill(half - left.length - right.length) + right);
 }
 
-function sprinkle(rand: Rand, glyphs: string, density: number): string {
-  return rand() < density ? glyphs[Math.floor(rand() * glyphs.length)] : ' ';
+function pick(rand: Rand, glyphs: string): string {
+  return glyphs[Math.floor(rand() * glyphs.length)];
 }
 
 function scatter(n: number, rand: Rand, glyphs: string, density: number): string {
-  return Array.from({ length: n }, () => sprinkle(rand, glyphs, density)).join('');
+  return Array.from({ length: n }, () => (rand() < density ? pick(rand, glyphs) : ' ')).join('');
 }
 
-// Anything falling outside the grid is clipped
-function put(grid: string[][], r: number, c: number, s: string) {
+function sprinkle(rand: Rand, fluff: Fluff[], density: number): [string, string] {
+  if (fluff.length === 0 || rand() >= density) {
+    return [' ', ''];
+  }
+
+  let roll = rand() * fluff.reduce((sum, f) => sum + f.weight, 0);
+  const chosen = fluff.find(f => (roll -= f.weight) < 0) ?? fluff[fluff.length - 1];
+  return [pick(rand, chosen.glyphs), chosen.tint];
+}
+
+function toCanvas({ rows, tints }: Painting): Canvas {
+  return { glyphs: rows.map(row => [...row]), tints: tints.map(row => [...row]) };
+}
+
+function toPainting({ glyphs, tints }: Canvas): Painting {
+  return { rows: glyphs.map(row => row.join('')), tints };
+}
+
+// Drawing over a cell replaces its tint too, so a pond under a wall vanishes
+function put(canvas: Canvas, r: number, c: number, s: string, tint = '') {
   [...s].forEach((glyph, i) => {
-    if (r >= 0 && r < grid.length && c + i >= 0 && c + i < grid[r].length) {
-      grid[r][c + i] = glyph;
+    if (r >= 0 && r < canvas.glyphs.length && c + i >= 0 && c + i < canvas.glyphs[r].length) {
+      canvas.glyphs[r][c + i] = glyph;
+      canvas.tints[r][c + i] = tint;
     }
   });
 }
 
-function meadow(cols: number, rows: number, rand: Rand, fluff: string): string[][] {
-  return Array.from({ length: rows }, () => [...scatter(cols, rand, fluff, MEADOW_DENSITY)]);
+function meadow(cols: number, rows: number, rand: Rand, fluff: Fluff[], density: number): Canvas {
+  const canvas: Canvas = { glyphs: [], tints: [] };
+  for (let r = 0; r < rows; r++) {
+    const cells = Array.from({ length: cols }, () => sprinkle(rand, fluff, density));
+    canvas.glyphs.push(cells.map(([glyph]) => glyph));
+    canvas.tints.push(cells.map(([, tint]) => tint));
+  }
+
+  return canvas;
+}
+
+// Only where the meadow beside the castle is wide enough, so narrow screens never get any
+function ponds(canvas: Canvas, l: Layout, rand: Rand, pond: Scenery['pond']) {
+  if (!pond) {
+    return;
+  }
+
+  const height = canvas.glyphs.length;
+  const rightStart = l.moatX + l.frameWidth + 2 * l.moatWidth + POND_GAP;
+  const sides = [
+    { start: 0, room: l.moatX - POND_GAP },
+    { start: rightStart, room: l.cols - rightStart },
+  ];
+
+  for (const { start, room } of sides) {
+    for (let band = 0; band < height; band += POND_BAND) {
+      const drawn = PONDS[Math.floor(rand() * PONDS.length)];
+      const shape = rand() < 0.5 ? drawn.map(row => [...row].reverse().join('')) : drawn;
+      const width = shape[0].length;
+      if (rand() >= POND_CHANCE || room < width) {
+        continue;
+      }
+
+      const top = band + Math.floor(rand() * Math.max(1, POND_BAND - shape.length));
+      const left = start + Math.floor(rand() * (room - width + 1));
+      shape.forEach((row, i) => [...row].forEach((glyph, x) => {
+        if (glyph !== ' ' && top + i < height) {
+          put(canvas, top + i, left + x, pond.glyph, pond.tint);
+        }
+      }));
+    }
+  }
 }
 
 function wideStyle(courtWidth: number): Style {
@@ -229,14 +354,17 @@ function keepRow(keepRowIndex: number, courtWidth: number, rand: Rand): string {
   return huts() + row + huts();
 }
 
-function roadside(road: string, rand: Rand, fluff: string): string {
-  const middle = road.length / 2;
-  return [...road]
-    .map((c, x) => (c === ' ' && Math.abs(x - middle) > ROADSIDE_CLEARANCE ? sprinkle(rand, fluff, ROADSIDE_DENSITY) : c))
-    .join('');
+function roadside(canvas: Canvas, r: number, courtX: number, courtWidth: number, rand: Rand, fluff: Fluff[]) {
+  const middle = courtWidth / 2;
+  for (let x = 0; x < courtWidth; x++) {
+    if (canvas.glyphs[r][courtX + x] === ' ' && Math.abs(x - middle) > ROADSIDE_CLEARANCE) {
+      const [glyph, tint] = sprinkle(rand, fluff, ROADSIDE_DENSITY);
+      put(canvas, r, courtX + x, glyph, tint);
+    }
+  }
 }
 
-function yardRow(i: number, l: Layout, keepY: number, keepRows: number, rand: Rand, fluff: string): string {
+function yardRow(i: number, l: Layout, keepY: number, keepRows: number, rand: Rand): string {
   if (i >= keepY && i < keepY + keepRows) {
     return keepRow(i - keepY, l.courtWidth, rand);
   }
@@ -246,8 +374,7 @@ function yardRow(i: number, l: Layout, keepY: number, keepRows: number, rand: Ra
     return spaces(l.courtWidth);
   }
 
-  const road = centered(ROAD, l.courtWidth);
-  return i === 1 && l.wide ? roadside(road, rand, fluff) : road;
+  return centered(ROAD, l.courtWidth);
 }
 
 function wideWallRow(i: number, yard: string, keepY: number): string {
@@ -287,7 +414,7 @@ export function layout(cols: number): Layout {
   };
 }
 
-export function castle(l: Layout, contentRows: number, rand: Rand, fluff: string): string[] {
+export function castle(l: Layout, contentRows: number, rand: Rand, scenery: Scenery): Painting {
   const s = style(l.wide, l.courtWidth);
   const keepRows = l.courtWidth >= KEEP[0].length ? KEEP.length : 0;
   // Courtyard rows, counted from the gate
@@ -299,48 +426,53 @@ export function castle(l: Layout, contentRows: number, rand: Rand, fluff: string
   const height = backY + s.back.length + 1 + s.meadowRows;
   const left = l.moatX + l.moatWidth;
 
-  const grid = meadow(l.cols, height, rand, fluff);
+  const canvas = meadow(l.cols, height, rand, scenery.fluff, scenery.density ?? MEADOW_DENSITY);
+  ponds(canvas, l, rand, scenery.pond);
 
   for (let r = s.meadowRows; r < height - s.meadowRows; r++) {
-    put(grid, r, l.moatX, MOAT.repeat(l.frameWidth + 2 * l.moatWidth));
+    put(canvas, r, l.moatX, MOAT.repeat(l.frameWidth + 2 * l.moatWidth));
   }
 
-  s.gate.forEach((row, i) => put(grid, gateY + i, left, row));
+  s.gate.forEach((row, i) => put(canvas, gateY + i, left, row));
 
   const roadX = left + s.gate[0].indexOf('≡');
-  put(grid, gateY - 1, roadX, BRIDGE);
+  put(canvas, gateY - 1, roadX, BRIDGE);
   for (let r = 0; r < gateY - 1; r++) {
-    put(grid, r, roadX, ROAD);
+    put(canvas, r, roadX, ROAD);
   }
 
   for (let i = 0; i < courtRows; i++) {
-    const yard = yardRow(i, l, keepY, keepRows, rand, fluff);
-    put(grid, l.courtY + i, left, l.wide ? wideWallRow(i, yard, keepY) : withMirror('║', yard));
+    const yard = yardRow(i, l, keepY, keepRows, rand);
+    put(canvas, l.courtY + i, left, l.wide ? wideWallRow(i, yard, keepY) : withMirror('║', yard));
   }
 
-  s.back.forEach((row, i) => put(grid, backY + i, left, row));
+  if (l.wide) {
+    roadside(canvas, l.courtY + 1, left + s.wall, l.courtWidth, rand, scenery.fluff);
+  }
 
-  return grid.map(row => row.join(''));
+  s.back.forEach((row, i) => put(canvas, backY + i, left, row));
+
+  return toPainting(canvas);
 }
 
-export function outline(rows: string[], frames: Cells[], bars: Cells[]): string[] {
-  const grid = rows.map(row => [...row]);
+export function outline(painting: Painting, frames: Cells[], bars: Cells[]): Painting {
+  const canvas = toCanvas(painting);
 
   for (const { top, bottom, left, right } of frames) {
     const inner = right - left - 1;
-    put(grid, top, left, '┌' + repeat('─')(inner) + '┐');
+    put(canvas, top, left, '┌' + repeat('─')(inner) + '┐');
     for (let r = top + 1; r < bottom; r++) {
-      put(grid, r, left, '│');
-      put(grid, r, right, '│');
+      put(canvas, r, left, '│');
+      put(canvas, r, right, '│');
     }
-    put(grid, bottom, left, '└' + repeat('─')(inner) + '┘');
+    put(canvas, bottom, left, '└' + repeat('─')(inner) + '┘');
   }
 
   for (const { top, bottom, left } of bars) {
     for (let r = top; r <= bottom; r++) {
-      put(grid, r, left, '│');
+      put(canvas, r, left, '│');
     }
   }
 
-  return grid.map(row => row.join(''));
+  return toPainting(canvas);
 }

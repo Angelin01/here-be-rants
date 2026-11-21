@@ -1,31 +1,38 @@
 import { castle, layout, outline, type Cells } from './castle.ts';
 import { rng } from './random.ts';
+import { AUTO, closeLikeAMenu, renderPicker } from './picker.ts';
+import { DEFAULT_THEMES, THEMES, modeOf, themeFor, type Mode } from './themes.ts';
 
-const MEADOW_FLUFF = `"",,''..♣τ♠*`;
 const PROBE_CHARS = 100;
 const ROW_TOLERANCE = 0.01;
+const SAVED_THEME_KEY = 'theme';
+// The <head> script in base.html reads this one before anything renders, keep the key in sync
+const SAVED_MODE_KEY = 'mode';
+// Every variable any theme sets, so switching themes can clear the previous one's leftovers
+const THEME_VARS = new Set(Object.values(THEMES).flatMap(t => Object.keys(t.colors)));
 
-// Anything not listed is painted in the default text color
-const GLYPH_CLASSES: Record<string, string> = {
+// CSS variable per castle glyph. Fluff brings its own tint, anything else uses the text color
+const GLYPH_COLORS: Record<string, string> = {
   moat: '≈',
-  grass: `"',.`,
-  tree: '♣♠τ',
-  flower: '*°',
+  tree: '♣τ',
   ember: '☼',
-  purple: '►',
+  purple: '►│┌┐└┘─',
   detail: '⌂○•',
   wood: '+≡╤',
-  code: '│┌┐└┘─',
   stone: '═║╔╗╚╝╠╣╦╩╧╢╟\\/',
 };
-const CLASS_OF = new Map(Object.entries(GLYPH_CLASSES).flatMap(([cls, glyphs]) => [...glyphs].map(g => [g, cls] as const)));
+const COLOR_OF = new Map(Object.entries(GLYPH_COLORS).flatMap(([color, glyphs]) => [...glyphs].map(g => [g, color] as const)));
 
 const field = document.getElementById('field')!;
 const walls = document.getElementById('walls')!;
 const court = document.getElementById('court')!;
+const picker = document.querySelector<HTMLDetailsElement>('#themes');
 const seed = document.body.dataset.seed ?? location.pathname;
 
 let paintQueued = false;
+let themeName = DEFAULT_THEMES.dark;
+// Kept in memory too, so picking still works for the visit when storage is blocked
+let chosenTheme: string | null = null;
 
 interface Cell {
   cw: number;
@@ -45,23 +52,23 @@ function measure(): Cell {
 }
 
 // Spaces join whatever run they're in, for fewer spans
-function toHtml(row: string): string {
+function toHtml(row: string, tints: string[]): string {
   let out = '';
-  let cls = '';
+  let color = '';
   let run = '';
   const flush = () => {
-    out += cls ? `<span class="${cls}">${run}</span>` : run;
+    out += color ? `<span style="color: var(--${color})">${run}</span>` : run;
   };
 
-  for (const g of row) {
-    const next = g === ' ' ? cls : (CLASS_OF.get(g) ?? '');
-    if (next !== cls) {
+  [...row].forEach((glyph, i) => {
+    const next = glyph === ' ' ? color : (tints[i] || COLOR_OF.get(glyph) || '');
+    if (next !== color) {
       flush();
-      cls = next;
+      color = next;
       run = '';
     }
-    run += g;
-  }
+    run += glyph;
+  });
   flush();
 
   return out;
@@ -103,15 +110,70 @@ function paint() {
   // Only measurable now that the court has its final width
   snapToRows(lh);
   const contentRows = Math.ceil(court.offsetHeight / lh);
-  const rows = castle(l, contentRows, rng(seed), MEADOW_FLUFF);
+  const painting = castle(l, contentRows, rng(seed), THEMES[themeName]);
 
   const origin = field.getBoundingClientRect();
   const frames = [...court.querySelectorAll('pre')].map(el => cellsOf(el, origin, cell));
   const bars = [...court.querySelectorAll('blockquote')].map(el => cellsOf(el, origin, cell));
 
-  walls.innerHTML = outline(rows, frames, bars).map(toHtml).join('\n');
+  const { rows, tints } = outline(painting, frames, bars);
+  walls.innerHTML = rows.map((row, r) => toHtml(row, tints[r])).join('\n');
   walls.dataset.cols = String(l.cols);
   field.style.height = `${rows.length * lh}px`;
+}
+
+// Storage throws in some private modes and with blocked site data, the choice then only lasts the visit
+function savedTheme(): string | null {
+  try {
+    return localStorage.getItem(SAVED_THEME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveTheme(name: string) {
+  try {
+    if (name === AUTO) {
+      localStorage.removeItem(SAVED_THEME_KEY);
+      localStorage.removeItem(SAVED_MODE_KEY);
+    } else {
+      localStorage.setItem(SAVED_THEME_KEY, name);
+      localStorage.setItem(SAVED_MODE_KEY, modeOf(name));
+    }
+  } catch {
+    // Nothing to do, see savedTheme()
+  }
+}
+
+function pageMode(): Mode {
+  const pinned = document.documentElement.dataset.modePin;
+  if (pinned === 'light' || pinned === 'dark') {
+    return pinned;
+  }
+
+  return matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function resolveTheme(): string {
+  const mode = pageMode();
+  const pinned = document.body.dataset.theme === 'default' ? DEFAULT_THEMES[mode] : document.body.dataset.theme;
+  const wanted = new URLSearchParams(location.search).get('theme') || chosenTheme || pinned || themeFor(seed, mode);
+  return wanted in THEMES ? wanted : DEFAULT_THEMES[mode];
+}
+
+function applyTheme(name: string) {
+  themeName = name;
+  const root = document.documentElement;
+  root.dataset.theme = name;
+  // Usually the <head> script already guessed right, this settles the cases it can't know, like ?theme=
+  root.dataset.mode = modeOf(name);
+
+  for (const key of THEME_VARS) {
+    root.style.removeProperty(`--${key}`);
+  }
+  for (const [key, value] of Object.entries(THEMES[name].colors)) {
+    root.style.setProperty(`--${key}`, value);
+  }
 }
 
 function schedulePaint() {
@@ -127,12 +189,48 @@ function schedulePaint() {
   });
 }
 
+function refreshPicker() {
+  if (!picker) {
+    return;
+  }
+
+  renderPicker(picker, { names: Object.keys(THEMES), chosen: chosenTheme ?? AUTO, shown: themeName }, pickTheme);
+}
+
+function pickTheme(name: string) {
+  chosenTheme = name === AUTO ? null : name;
+  saveTheme(name);
+
+  // ?theme= outranks the saved choice, so it has to go or the choice would seem to do nothing
+  const params = new URLSearchParams(location.search);
+  params.delete('theme');
+  history.replaceState(null, '', location.pathname + (params.size > 0 ? `?${params}` : ''));
+
+  applyTheme(resolveTheme());
+  refreshPicker();
+  schedulePaint();
+}
+
+function showPicker() {
+  if (!picker) {
+    return;
+  }
+
+  closeLikeAMenu(picker);
+  refreshPicker();
+  picker.hidden = false;
+  picker.closest('header')!.hidden = false;
+}
+
 function repaintOnResize() {
   addEventListener('resize', schedulePaint);
   new ResizeObserver(schedulePaint).observe(court);
 }
 
 function main() {
+  chosenTheme = savedTheme();
+  applyTheme(resolveTheme());
+  showPicker();
   repaintOnResize();
   document.fonts.ready.then(schedulePaint);
   schedulePaint();

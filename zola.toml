@@ -11,4 +11,6 @@ taxonomies = [{ name = "tags" }]
 insert_anchor_links = "left"
 
 [markdown.highlighting]
-theme = "dracula"
+style = "class"
+dark_theme = "dracula"
+light_theme = "github-light"

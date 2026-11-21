@@ -1,10 +1,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { castle, layout, outline } from './castle.ts';
+import { castle, layout, outline, type Painting, type Scenery } from './castle.ts';
 import { rng } from './random.ts';
 
-const FLUFF = `"",,''..♣τ♠*`;
-const NO_FLUFF = ' ';
+const POND_TINT = 'pond';
+const SCENERY: Scenery = {
+  fluff: [
+    { glyphs: `"',.`, tint: 'grass', weight: 8 },
+    { glyphs: '♣τ♠', tint: 'tree', weight: 3 },
+    { glyphs: '*', tint: 'flower', weight: 1 },
+  ],
+  pond: { glyph: '≈', tint: POND_TINT },
+};
+const NO_FLUFF: Scenery = { fluff: [] };
+const WIDE_COLS = 200;
 const MIN_COLS = 30;
 const MAX_COLS = 260;
 const CONTENT_ROWS = [0, 1, 7, 40, 100];
@@ -20,8 +29,16 @@ const MIRRORED: Record<string, string> = {
   '\\': '/', '/': '\\',
 };
 
-function build(cols: number, contentRows: number, seed = 'seed', fluff = FLUFF): string[] {
-  return castle(layout(cols), contentRows, rng(seed), fluff);
+function paint(cols: number, contentRows: number, seed = 'seed', scenery = SCENERY): Painting {
+  return castle(layout(cols), contentRows, rng(seed), scenery);
+}
+
+function build(cols: number, contentRows: number, seed = 'seed', scenery = SCENERY): string[] {
+  return paint(cols, contentRows, seed, scenery).rows;
+}
+
+function untinted(rows: string[]): Painting {
+  return { rows, tints: rows.map(row => [...row].map(() => '')) };
 }
 
 // Rows can't come out too wide, the grid clips them. A wall piece of the wrong width breaks the moat instead.
@@ -87,11 +104,52 @@ test('when the content grows, then side towers never reach the keep', () => {
   }
 });
 
+test('given fluff and a pond, when building, then only fluff and pond cells are tinted', () => {
+  const tinted = new Set([...SCENERY.fluff.flatMap(f => [...f.glyphs]), SCENERY.pond!.glyph]);
+  const { rows, tints } = paint(WIDE_COLS, 40);
+
+  rows.forEach((row, r) => [...row].forEach((glyph, c) => {
+    if (tints[r][c]) {
+      assert.ok(tinted.has(glyph), `row ${r} col ${c}: "${glyph}" tinted ${tints[r][c]}`);
+    }
+  }));
+});
+
+// A pond reaching into the castle gets painted over, so the visible bug is one touching the moat
+test('given a pond, when building wide, then ponds show up in the meadow with a gap before the moat', () => {
+  let pondCells = 0;
+
+  // From where ponds barely fit beside the castle, so a misplaced one has nowhere to hide
+  for (let cols = 100; cols <= WIDE_COLS; cols += 4) {
+    const { moatX, moatWidth, frameWidth } = layout(cols);
+    const moatEnd = moatX + frameWidth + 2 * moatWidth;
+
+    for (const seed of ['a', 'b', 'c', 'd']) {
+      paint(cols, 100, seed).tints.forEach((row, r) => row.forEach((tint, c) => {
+        if (tint !== POND_TINT) {
+          return;
+        }
+        assert.ok(c < moatX - 1 || c > moatEnd, `cols=${cols} seed ${seed} row ${r} col ${c}: pond touches the moat`);
+        pondCells++;
+      }));
+    }
+  }
+
+  assert.ok(pondCells > 0, 'no ponds at all');
+});
+
+test('given a pond, when building narrow, then there are no ponds', () => {
+  for (let cols = MIN_COLS; cols < 72; cols++) {
+    const tints = paint(cols, 40).tints.flat();
+    assert.ok(!tints.includes(POND_TINT), `cols=${cols}`);
+  }
+});
+
 test('given a frame, when outlining, then a box is drawn on its edges and the inside is untouched', () => {
   const rows = ['......', '......', '......', '......'];
   const frame = { top: 0, bottom: 3, left: 1, right: 4 };
 
-  assert.deepEqual(outline(rows, [frame], []), [
+  assert.deepEqual(outline(untinted(rows), [frame], []).rows, [
     '.┌──┐.',
     '.│..│.',
     '.│..│.',
@@ -103,7 +161,7 @@ test('given a bar, when outlining, then only its left column gets a line', () =>
   const rows = ['....', '....', '....'];
   const bar = { top: 1, bottom: 2, left: 1, right: 3 };
 
-  assert.deepEqual(outline(rows, [], [bar]), [
+  assert.deepEqual(outline(untinted(rows), [], [bar]).rows, [
     '....',
     '.│..',
     '.│..',

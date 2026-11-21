@@ -24,10 +24,19 @@ Rules:
   --ember: #e0522b;
   --purple: #9b5de5;
   --wood: #8a6a45;
-  --moat: #3b6ea5;
-  --grass: #4f7a3a;
-  --tree: #2f6b3a;
-  --flower: #c9a227;
+}
+
+/* Each theme still tints --bg from themes.ts */
+[data-mode="light"] {
+  --bg: #efe7d2;
+  --text: #1a1612;
+  --bright: #000000;
+  --dim: #4a433b;
+  --stone: #3a352f;
+  --detail: #4f3f2a;
+  --ember: #8f2c0c;
+  --purple: #52289a;
+  --wood: #583c20;
 }
 
 * {
@@ -36,6 +45,11 @@ Rules:
   box-sizing: border-box;
   font: inherit;
   color: inherit;
+}
+
+/* Any display rule, like the header's flex, beats the browser's own [hidden] rule */
+[hidden] {
+  display: none !important;
 }
 
 html {
@@ -79,46 +93,6 @@ html {
   margin: 0;
   padding: 0;
   max-width: none;
-}
-
-#walls .moat {
-  color: var(--moat);
-}
-
-#walls .grass {
-  color: var(--grass);
-}
-
-#walls .tree {
-  color: var(--tree);
-}
-
-#walls .flower {
-  color: var(--flower);
-}
-
-#walls .ember {
-  color: var(--ember);
-}
-
-#walls .purple {
-  color: var(--purple);
-}
-
-#walls .detail {
-  color: var(--detail);
-}
-
-#walls .wood {
-  color: var(--wood);
-}
-
-#walls .stone {
-  color: var(--stone);
-}
-
-#walls .code {
-  color: var(--purple);
 }
 
 /* Content */
@@ -237,15 +211,45 @@ main pre code {
   color: inherit;
 }
 
-/* Dracula's comment color is too dim on our background. Its colors are inline styles, hence !important */
-main pre [style*="#6272A4"] {
-  color: var(--dim) !important;
+/* The frame drawn by walls.ts would be covered by the background. Without JS the background stays */
+#field.walled main pre {
+  background: none;
 }
 
-/* The frame drawn by walls.ts would be covered by Dracula's background. Without JS the background stays */
-#field.walled main pre {
-  background: none !important;
+/*
+Code colors. Zola tags every token with a class per theme (z-d-* for dracula, z-l-* for github-light), numbered by
+that theme's palette. Starting colors come from the giallo-*.css files Zola writes to public/
+*/
+.z-d-code {
+  color: #f8f8f2;
+  background: #282a36;
 }
+
+.z-d-1 { color: #50fa7b; }
+/* Dracula's comment color, too dim on our background */
+.z-d-2 { color: var(--dim); }
+.z-d-3 { color: #8be9fd; }
+.z-d-4 { color: #8be9fe; }
+.z-d-5 { color: #bd93f9; }
+.z-d-6 { color: #e9f284; }
+.z-d-7 { color: #f1fa8c; }
+.z-d-8 { color: #ff5555; }
+.z-d-9 { color: #ff79c6; }
+.z-d-10 { color: #ffb86c; }
+
+/* Light themes: tokens can have a dark class and no light one, so drop every dark color first.
+   github-light is made for white, so its colors are darkened to pass contrast on our backgrounds */
+[data-mode="light"] main pre { color: var(--text); }
+[data-mode="light"] main pre * { color: inherit; }
+[data-mode="light"] main pre .z-l-1 { color: #0050ad; }
+[data-mode="light"] main pre .z-l-2 { color: #032f62; }
+[data-mode="light"] main pre .z-l-3 { color: #155f2a; }
+[data-mode="light"] main pre .z-l-4 { color: #4a5159; }
+[data-mode="light"] main pre .z-l-5 { color: #4d555e; }
+[data-mode="light"] main pre .z-l-6 { color: #5c34a8; }
+[data-mode="light"] main pre .z-l-7 { color: #9c1923; }
+[data-mode="light"] main pre .z-l-8 { color: #a01d29; }
+[data-mode="light"] main pre .z-l-9 { color: #853a05; }
 
 /* Blocks */
 
@@ -337,6 +341,57 @@ img {
 
 .footnote-definition p {
   margin-bottom: 0;
+}
+
+/* Header and theme picker */
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  column-gap: 2ch;
+}
+
+#themes {
+  position: relative;
+  /* Stays on the right on the home page, where there's no breadcrumb */
+  margin-left: auto;
+}
+
+#themes summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--purple);
+}
+
+#themes summary::-webkit-details-marker {
+  display: none;
+}
+
+#themes[open] summary {
+  color: var(--text);
+}
+
+#themes .menu {
+  position: absolute;
+  top: var(--lh);
+  right: 0;
+  z-index: 1;
+  white-space: pre;
+  background: var(--bg);
+  color: var(--purple);
+}
+
+#themes .menu button {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--text);
+}
+
+#themes .menu button:hover,
+#themes .menu button:focus-visible {
+  color: var(--purple);
 }
 
 /* Pages */
