@@ -14,3 +14,6 @@ insert_anchor_links = "left"
 style = "class"
 dark_theme = "dracula"
 light_theme = "github-light"
+
+[extra]
+source = "https://github.com/Angelin01/here-be-rants"
