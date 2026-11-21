@@ -145,6 +145,7 @@ export interface Fluff {
 
 export interface Scenery {
   fluff: Fluff[];
+  density?: number;
   // Water, lava or whatever pools in the meadow
   pond?: { glyph: string; tint: string };
 }
@@ -254,10 +255,10 @@ function put(canvas: Canvas, r: number, c: number, s: string, tint = '') {
   });
 }
 
-function meadow(cols: number, rows: number, rand: Rand, fluff: Fluff[]): Canvas {
+function meadow(cols: number, rows: number, rand: Rand, fluff: Fluff[], density: number): Canvas {
   const canvas: Canvas = { glyphs: [], tints: [] };
   for (let r = 0; r < rows; r++) {
-    const cells = Array.from({ length: cols }, () => sprinkle(rand, fluff, MEADOW_DENSITY));
+    const cells = Array.from({ length: cols }, () => sprinkle(rand, fluff, density));
     canvas.glyphs.push(cells.map(([glyph]) => glyph));
     canvas.tints.push(cells.map(([, tint]) => tint));
   }
@@ -425,7 +426,7 @@ export function castle(l: Layout, contentRows: number, rand: Rand, scenery: Scen
   const height = backY + s.back.length + 1 + s.meadowRows;
   const left = l.moatX + l.moatWidth;
 
-  const canvas = meadow(l.cols, height, rand, scenery.fluff);
+  const canvas = meadow(l.cols, height, rand, scenery.fluff, scenery.density ?? MEADOW_DENSITY);
   ponds(canvas, l, rand, scenery.pond);
 
   for (let r = s.meadowRows; r < height - s.meadowRows; r++) {
