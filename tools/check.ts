@@ -99,6 +99,26 @@ function checkReadable(): string[] {
   return out;
 }
 
+// Runs inside the page, so it can't use anything from this file
+async function checkShareTags(): Promise<string[]> {
+  const REQUIRED = ['og:site_name', 'og:type', 'og:title', 'og:description', 'og:image'];
+  const content = (property: string) => document.querySelector(`meta[property="${property}"]`)?.getAttribute('content') ?? '';
+  const out: string[] = [];
+
+  for (const property of REQUIRED) {
+    if (!content(property)) {
+      out.push(`share preview: missing or empty ${property}`);
+    }
+  }
+
+  const image = content('og:image');
+  if (image && !(await fetch(image)).ok) {
+    out.push(`share preview: og:image does not load (${image})`);
+  }
+
+  return out;
+}
+
 function slug(urlPath: string): string {
   return urlPath.replaceAll('/', '_');
 }
@@ -154,6 +174,8 @@ async function pageOk(page: Page, urlPath: string, name: string, { js = true, th
     if (theme && applied !== theme) {
       problems.push(`theme is ${applied}, expected ${theme}`);
     }
+
+    problems.push(...await page.evaluate(checkShareTags));
 
     // The castle is decoration hidden from screen readers, contrast rules don't apply to it
     const axe = await new AxeBuilder({ page }).exclude('#walls').analyze();
