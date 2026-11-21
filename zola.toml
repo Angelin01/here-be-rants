@@ -3,7 +3,7 @@ title = "Here Be Rants"
 description = "Ramblings, rants and game dev field notes"
 author = "Angelin01"
 compile_sass = false
-build_search_index = false
+build_search_index = true
 generate_feeds = true
 taxonomies = [{ name = "tags" }]
 
@@ -15,6 +15,11 @@ lazy_async_image = true
 style = "class"
 dark_theme = "dracula"
 light_theme = "github-light"
+
+[search]
+index_format = "fuse_json"
+include_description = true
+include_path = true
 
 [extra]
 source = "https://github.com/Angelin01/here-be-rants"

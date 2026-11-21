@@ -49,6 +49,11 @@ manual checking if needed.
 - Each page's castle and fluff is random, but seeded by its title/path.
 - `tsc` compiles `src/` to `static/js/`. This is simple enough we don't need a bundler. `tools/` and the tests are run
   by Node directly.
+- Browser builds of runtime dependencies (just Fuse.js, for search) are vendored from `node_modules/` into
+  `static/vendor/` using `pnpm vendor`. Bumping the versions work because of this (for the likes of Dependabot and
+  Renovate). The import map in `templates/base.html` lets our code import them by name.
+- The home page is paginated: 25 posts per page.
+- Search covers every post, using Zola's search index and Fuse.js.
 
 ## License
 
@@ -58,3 +63,4 @@ manual checking if needed.
   separate source and license.
 - Font: IBM VGA 9x16 from [The Ultimate Oldschool PC Font Pack](https://int10h.org/oldschool-pc-fonts/) by VileR,
   [CC BY-SA 4.0](static/fonts/LICENSE-oldschool-pc-fonts.txt).
+- Vendored dependencies: see their own links, or the license page.

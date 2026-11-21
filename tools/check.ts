@@ -24,6 +24,8 @@ const ENGINES: Record<string, BrowserType> = { chromium, firefox };
 const POLL_MS = 100;
 const SERVER_TIMEOUT_MS = 5000;
 const FONT_TIMEOUT_MS = 5000;
+const SEARCH_TIMEOUT_MS = 2000;
+const IMAGE_TIMEOUT_MS = 5000;
 const MAX_PROBLEMS_SHOWN = 10;
 const MAX_A11Y_NODES_SHOWN = 3;
 
@@ -135,6 +137,21 @@ async function waitForFont(page: Page): Promise<boolean> {
   return false;
 }
 
+// Lazy images load whenever the browser feels like it, and walls.ts repaints when they do. Measuring in between
+// sees an image that isn't snapped to rows yet, so load them all up front
+async function loadImages(page: Page) {
+  await page.evaluate(imageTimeout => Promise.race([
+    Promise.all([...document.images].map(img => {
+      img.loading = 'eager';
+      return img.complete ? null : new Promise(done => {
+        img.addEventListener('load', done, { once: true });
+        img.addEventListener('error', done, { once: true });
+      });
+    })),
+    new Promise(done => setTimeout(done, imageTimeout)),
+  ]), IMAGE_TIMEOUT_MS);
+}
+
 async function waitTwoFrames(page: Page) {
   await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 }
@@ -162,7 +179,8 @@ async function pageOk(page: Page, urlPath: string, name: string, { js = true, th
   }
 
   if (js) {
-    // walls.ts repaints a frame after the font loads, measuring before that would see no castle
+    await loadImages(page);
+    // walls.ts repaints a frame after the font or an image loads, measuring before that would see the old castle
     await waitTwoFrames(page);
     if (await page.evaluate(() => document.getElementById('walls')!.dataset.cols)) {
       problems.push(...await page.evaluate(checkGrid));
@@ -298,14 +316,66 @@ async function lightOsOk(browser: Browser, name: string): Promise<boolean> {
   return report(`${name}-light-os`, problems);
 }
 
+// Runs inside the page: titles of the rows a reader can see, from the listing or the results, whichever is showing
+function visibleRows(): { title: string; date: string }[] {
+  return [...document.querySelectorAll<HTMLElement>('.posts')]
+    .filter(list => list.offsetParent !== null)
+    .flatMap(list => [...list.querySelectorAll('li')])
+    .map(row => ({ title: row.querySelector('a')!.textContent!.trim(), date: row.querySelector('time')?.textContent ?? '' }));
+}
+
+// Expectations follow the posts in content/, the kitchen sink is a draft but check runs with drafts
+async function searchOk(browser: Browser, name: string): Promise<boolean> {
+  const SEARCHES: [string, string[]][] = [
+    ['zola', ['Hello, Zola']],
+    ['kitchn', ['Kitchen sink']],
+    // Only in the kitchen sink's lists, so this proves the body is searched too. Zola leaves code blocks out of the index
+    ['carp', ['Kitchen sink']],
+    ['no such rant anywhere', []],
+    ['', ['Hello, Zola', 'Kitchen sink']],
+  ];
+  const width = WIDTHS[WIDTHS.length - 1];
+  const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT }, colorScheme: 'dark' });
+  const page = await context.newPage();
+  const problems: string[] = [];
+
+  await page.goto(BASE + '/');
+  for (const [query, expected] of SEARCHES) {
+    await page.fill('#search', query);
+    // The first search fetches the index, so give the rows a moment to show up
+    let rows = await page.evaluate(visibleRows);
+    for (let waited = 0; waited < SEARCH_TIMEOUT_MS && rows.length !== expected.length; waited += POLL_MS) {
+      await page.waitForTimeout(POLL_MS);
+      rows = await page.evaluate(visibleRows);
+    }
+
+    const shown = rows.map(row => row.title);
+    if (shown.join('|') !== expected.join('|')) {
+      problems.push(`searching "${query}" showed [${shown.join(', ')}], expected [${expected.join(', ')}]`);
+    }
+    for (const row of rows.filter(row => !/^\d{4}\.\d{2}\.\d{2}$/.test(row.date))) {
+      problems.push(`searching "${query}": "${row.title}" has no date`);
+    }
+
+    const noResultsShown = await page.isVisible('#no-results');
+    if (noResultsShown !== (expected.length === 0)) {
+      problems.push(`searching "${query}": "no results" ${noResultsShown ? 'shown' : 'hidden'} with ${shown.length} results`);
+    }
+  }
+
+  await context.close();
+  return report(`${name}-search`, problems);
+}
+
 async function engineOk(browser: Browser, name: string): Promise<boolean> {
   const pages = await pagesOk(browser, name);
   const themes = await themesOk(browser, name);
   const picker = await pickerOk(browser, name);
   const lightOs = await lightOsOk(browser, name);
+  const search = await searchOk(browser, name);
   const noJs = await noJsOk(browser, name);
 
-  return pages && themes && picker && lightOs && noJs;
+  return pages && themes && picker && lightOs && search && noJs;
 }
 
 async function serverUp(): Promise<boolean> {
