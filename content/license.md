@@ -16,3 +16,11 @@ The site's code is licensed [Apache 2.0](https://www.apache.org/licenses/LICENSE
 ## The Neat Font
 
 IBM VGA 9x16 from [The Ultimate Oldschool PC Font Pack](https://int10h.org/oldschool-pc-fonts/) by VileR, licensed [CC BY-SA 4.0]({{ get_url(path='fonts/LICENSE-oldschool-pc-fonts.txt') }}).
+
+## Search
+
+Search runs on [Fuse.js](https://www.fusejs.io/) by Kiro Risk, licensed [Apache 2.0]({{ get_url(path='vendor/fuse.LICENSE.txt') }}).
+
+## Image sliders
+
+Before/after sliders use [JuxtaposeJS](https://juxtapose.knightlab.com/) by Alex Duner and Northwestern University Knight Lab, licensed [MPL 2.0](https://www.mozilla.org/en-US/MPL/2.0/). The source is on [GitHub](https://github.com/NUKnightLab/juxtapose).

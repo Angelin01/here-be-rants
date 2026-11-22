@@ -4,11 +4,12 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "dev": "tsc && (tsc --watch --preserveWatchOutput & zola serve --drafts)",
-    "build": "tsc && zola build",
+    "dev": "node tools/vendor.ts && tsc && (tsc --watch --preserveWatchOutput & zola serve --drafts)",
+    "build": "node tools/vendor.ts && tsc && zola build",
     "test": "node --test 'src/**/*.test.ts'",
-    "check": "tsc && tsc -p tools && pnpm test && node tools/check.ts",
-    "og-image": "tsc && node tools/og-image.ts"
+    "check": "node tools/vendor.ts && tsc && tsc -p tools && pnpm test && node tools/check.ts",
+    "og-image": "node tools/vendor.ts && tsc && node tools/og-image.ts",
+    "vendor": "node tools/vendor.ts"
   },
   "devEngines": {
     "packageManager": {
@@ -21,6 +22,8 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
     "@types/node": "^26.6.6",
+    "fuse.js": "^7.5.0",
+    "juxtaposejs": "^1.1.6",
     "playwright": "^1.65.1",
     "typescript": "^7.0.2"
   }

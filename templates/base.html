@@ -48,7 +48,10 @@
 <link rel="preload" href="{{ get_url(path='fonts/WebPlus_IBM_VGA_9x16.woff') }}" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="{{ get_url(path='css/site.css') }}">
 <link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="{{ get_url(path='atom.xml') }}">
+{#- Our compiled JS imports packages by name (`from 'fuse.js'`), the browser looks them up here. Files come from pnpm vendor -#}
+<script type="importmap">{ "imports": { "fuse.js": "{{ get_url(path='vendor/fuse.min.mjs') }}" } }</script>
 <script type="module" src="{{ get_url(path='js/walls.js') }}"></script>
+{% block scripts %}{% endblock %}
 </head>
 <body data-seed="{{ path }}" data-theme="{% block theme %}{% endblock %}">
 <div id="field">

@@ -1,0 +1,9 @@
+{#- Before/after image slider. In a post: {{ <compare before="a.png" after="b.png" /> }} -#}
+{% component compare(before, after, before_label="before", after_label="after") %}
+<div data-snap data-compare data-before-label="{{ before_label }}" data-after-label="{{ after_label }}">
+<div class="juxtapose" data-showcredits="false">
+<img src="{{ before }}" data-label="{{ before_label }}" alt="{{ before_label }}">
+<img src="{{ after }}" data-label="{{ after_label }}" alt="{{ after_label }}">
+</div>
+</div>
+{% endcomponent compare %}

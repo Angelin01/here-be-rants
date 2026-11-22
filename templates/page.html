@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 {% block title %}{{ page.title }} - {{ config.title }}{% endblock %}
 {% block description %}{{ page.description or config.description }}{% endblock %}
+{#- Lazy load juxtapose -#}
+{% block scripts %}
+{% if "juxtapose" in page.content %}
+<link rel="stylesheet" href="{{ get_url(path='vendor/juxtapose.css') }}">
+<script src="{{ get_url(path='vendor/juxtapose.min.js') }}" defer></script>
+<script type="module" src="{{ get_url(path='js/compare.js') }}"></script>
+{% endif %}
+{% endblock %}
 {% block content %}
 {#- Posts sort newest first, so Zola's "lower" is the newer neighbour and "higher" the older one -#}
 {% set newer = page.lower %}

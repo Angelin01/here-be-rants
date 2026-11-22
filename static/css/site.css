@@ -333,6 +333,16 @@ img {
   max-width: 100%;
 }
 
+/* Juxtapose's labels come in Helvetica */
+.juxtapose * {
+  font-family: inherit;
+}
+
+/* Its credit badge ignores data-showcredits and fails contrast on light themes. The License page credits it instead */
+.juxtapose a.jx-knightlab {
+  display: none;
+}
+
 /* Footnotes */
 
 .footnote-reference::before {
@@ -413,6 +423,29 @@ header {
 
 .centered {
   text-align: center;
+}
+
+/* Search */
+
+/* Flex keeps the input from sitting on the text baseline, which would make the row taller than one line */
+.search {
+  display: flex;
+  gap: 1ch;
+}
+
+.search input {
+  flex: 0 1 32ch;
+  min-width: 0;
+  height: var(--lh);
+  padding: 0 1ch;
+  border: 0;
+  appearance: none;
+  background: color-mix(in srgb, var(--purple) 15%, var(--bg));
+  color: var(--text);
+}
+
+.search input::placeholder {
+  color: var(--dim);
 }
 
 /* Post list */
