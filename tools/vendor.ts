@@ -10,6 +10,9 @@ const VENDOR = path.join(ROOT, 'static', 'vendor');
 const VENDORED: Record<string, string> = {
   'fuse.min.mjs': 'fuse.js/dist/fuse.min.mjs',
   'fuse.LICENSE.txt': 'fuse.js/LICENSE',
+  // No LICENSE in the package, the License page links MPL 2.0 and the source instead
+  'juxtapose.min.js': 'juxtaposejs/build/js/juxtapose.min.js',
+  'juxtapose.css': 'juxtaposejs/build/css/juxtapose.css',
 };
 
 function main() {

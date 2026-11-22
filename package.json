@@ -23,6 +23,7 @@
     "@axe-core/playwright": "^4.14.0",
     "@types/node": "^26.6.6",
     "fuse.js": "^7.5.0",
+    "juxtaposejs": "^1.1.6",
     "playwright": "^1.65.1",
     "typescript": "^7.0.2"
   }

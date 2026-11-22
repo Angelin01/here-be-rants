@@ -333,6 +333,16 @@ img {
   max-width: 100%;
 }
 
+/* Juxtapose's labels come in Helvetica */
+.juxtapose * {
+  font-family: inherit;
+}
+
+/* Its credit badge ignores data-showcredits and fails contrast on light themes. The License page credits it instead */
+.juxtapose a.jx-knightlab {
+  display: none;
+}
+
 /* Footnotes */
 
 .footnote-reference::before {

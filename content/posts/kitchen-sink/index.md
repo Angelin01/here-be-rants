@@ -62,6 +62,10 @@ A plain image, snapped to the grid with padding:
 
 ![The meadow castle](meadow.png)
 
+And a before/after slider, a third-party embed snapped to the grid as one block. Drag it:
+
+{{ <compare before="lava.png" after="meadow.png" before_label="lava" after_label="meadow" /> }}
+
 ---
 
 ### A small heading
