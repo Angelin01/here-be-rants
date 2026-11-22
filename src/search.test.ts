@@ -44,11 +44,6 @@ test('given a word in one title and another body, when searching, then the title
   assert.deepEqual(titles('carp'), ['On losing a fortress to one carp', 'Gone fishing']);
 });
 
-test('given the same post indexed twice, when searching, then it shows up once', () => {
-  const twice = createSearch([...ENTRIES, ENTRIES[0]]);
-  assert.deepEqual(twice('timesteps').map(e => e.title), ['Fixed timesteps']);
-});
-
 test('given a word deep in a long body, when searching, then the post is found', () => {
   const long = createSearch([entry('/posts/long/', 'Long', `${'filler words here. '.repeat(200)}a lonely carp`)]);
   assert.deepEqual(long('carp').map(e => e.title), ['Long']);

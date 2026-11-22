@@ -26,6 +26,11 @@ const SERVER_TIMEOUT_MS = 5000;
 const FONT_TIMEOUT_MS = 5000;
 const SEARCH_TIMEOUT_MS = 2000;
 const IMAGE_TIMEOUT_MS = 5000;
+// The hit comes after the whole whistle when sound is allowed, right away otherwise
+const DIVE_TIMEOUT_MS = 10000;
+const SETTLE_TIMEOUT_MS = 6000;
+// The kitchen sink has text everywhere for the hit to land on
+const GET_DOWN_PAGE = '/posts/kitchen-sink/?get-down&theme=meadow';
 const MAX_PROBLEMS_SHOWN = 10;
 const MAX_A11Y_NODES_SHOWN = 3;
 
@@ -114,8 +119,11 @@ async function checkShareTags(): Promise<string[]> {
   }
 
   const image = content('og:image');
-  if (image && !(await fetch(image)).ok) {
-    out.push(`share preview: og:image does not load (${image})`);
+  if (image) {
+    const loads = await fetch(image).then(response => response.ok, () => false);
+    if (!loads) {
+      out.push(`share preview: og:image does not load (${image})`);
+    }
   }
 
   return out;
@@ -171,9 +179,14 @@ interface PageOptions {
 }
 
 async function pageOk(page: Page, urlPath: string, name: string, { js = true, theme }: PageOptions = {}): Promise<boolean> {
-  await page.goto(BASE + urlPath);
+  const response = await page.goto(BASE + urlPath);
 
   const problems: string[] = [];
+  // A missing page still renders the 404 page, which passes every other check
+  const expectedStatus = urlPath === NOT_FOUND_PAGE ? 404 : 200;
+  if (response?.status() !== expectedStatus) {
+    problems.push(`HTTP ${response?.status()}, expected ${expectedStatus}`);
+  }
   if (!(await waitForFont(page))) {
     problems.push(`font did not load in ${FONT_TIMEOUT_MS}ms`);
   }
@@ -367,15 +380,101 @@ async function searchOk(browser: Browser, name: string): Promise<boolean> {
   return report(`${name}-search`, problems);
 }
 
+function getDownState(): { gone: number; faded: number; flying: number; marker: number } {
+  return {
+    gone: document.querySelectorAll('.gone').length,
+    faded: document.querySelectorAll('.faded').length,
+    flying: document.querySelectorAll('.fx').length,
+    marker: document.querySelectorAll('.marker').length,
+  };
+}
+
+async function getDownRun(browser: Browser, reducedMotion: 'reduce' | 'no-preference'): Promise<string[]> {
+  const width = WIDTHS[WIDTHS.length - 1];
+  const context = await browser.newContext({ viewport: { width, height: VIEWPORT_HEIGHT }, colorScheme: 'dark', reducedMotion });
+  const page = await context.newPage();
+  const errors: string[] = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.goto(BASE + GET_DOWN_PAGE);
+
+  let state = await page.evaluate(getDownState);
+  let mostFlying = 0;
+  for (let waited = 0; waited < DIVE_TIMEOUT_MS && state.gone + state.faded === 0; waited += POLL_MS) {
+    await page.waitForTimeout(POLL_MS);
+    state = await page.evaluate(getDownState);
+    mostFlying = Math.max(mostFlying, state.flying);
+  }
+  for (let waited = 0; waited < SETTLE_TIMEOUT_MS && state.flying > 0; waited += POLL_MS) {
+    await page.waitForTimeout(POLL_MS);
+    state = await page.evaluate(getDownState);
+    mostFlying = Math.max(mostFlying, state.flying);
+  }
+
+  const problems = errors.map(e => `page error: ${e}`);
+  if (reducedMotion === 'reduce') {
+    if (state.faded === 0) {
+      problems.push('no letters faded');
+    }
+    if (mostFlying > 0 || state.gone > 0) {
+      problems.push('things flew despite reduced motion');
+    }
+  } else {
+    if (state.gone === 0) {
+      problems.push('no letters were blown away');
+    }
+    if (mostFlying === 0) {
+      problems.push('nothing ever flew');
+    }
+  }
+  if (state.flying > 0) {
+    problems.push(`${state.flying} effects still on screen after ${SETTLE_TIMEOUT_MS}ms`);
+  }
+  if (state.marker > 0) {
+    problems.push('the target marker stayed after the hit');
+  }
+
+  await context.close();
+  return problems;
+}
+
+async function getDownTriggerRun(browser: Browser): Promise<string[]> {
+  const context = await browser.newContext({ viewport: { width: WIDTHS[WIDTHS.length - 1], height: VIEWPORT_HEIGHT }, colorScheme: 'dark' });
+  const page = await context.newPage();
+  const targeting = () => page.evaluate(() => document.body.classList.contains('targeting'));
+  const problems: string[] = [];
+
+  await page.goto(BASE + '/posts/kitchen-sink/');
+  await page.locator('.beacon').click();
+  if (!(await targeting())) {
+    problems.push('the spire did not start targeting');
+  }
+  await page.keyboard.press('Escape');
+  if (await targeting()) {
+    problems.push('Escape did not cancel targeting');
+  }
+
+  await context.close();
+  return problems;
+}
+
+async function getDownOk(browser: Browser, name: string): Promise<boolean> {
+  const dive = report(`${name}-get-down`, await getDownRun(browser, 'no-preference'));
+  const gentle = report(`${name}-get-down-reduced-motion`, await getDownRun(browser, 'reduce'));
+  const trigger = report(`${name}-get-down-trigger`, await getDownTriggerRun(browser));
+
+  return dive && gentle && trigger;
+}
+
 async function engineOk(browser: Browser, name: string): Promise<boolean> {
   const pages = await pagesOk(browser, name);
   const themes = await themesOk(browser, name);
   const picker = await pickerOk(browser, name);
   const lightOs = await lightOsOk(browser, name);
   const search = await searchOk(browser, name);
+  const getDown = await getDownOk(browser, name);
   const noJs = await noJsOk(browser, name);
 
-  return pages && themes && picker && lightOs && search && noJs;
+  return pages && themes && picker && lightOs && search && getDown && noJs;
 }
 
 async function serverUp(): Promise<boolean> {
@@ -420,6 +519,8 @@ async function main(args: string[]): Promise<number> {
   }
 
   fs.rmSync(SHOTS, { recursive: true, force: true });
+  // zola serve falls back to stale files in public/, which can hide pages that no longer build
+  fs.rmSync(path.join(ROOT, 'public'), { recursive: true, force: true });
   fs.mkdirSync(SHOTS, { recursive: true });
   const zola = childProcess.spawn('zola', ['serve', '--drafts', '--port', String(PORT)], { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
 

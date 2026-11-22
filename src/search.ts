@@ -18,10 +18,7 @@ function isPost(entry: Entry): boolean {
 }
 
 export function createSearch(entries: Entry[]): (query: string) => Entry[] {
-  // The posts section is transparent, so Zola indexes every post twice, once per section
-  const posts = [...new Map(entries.filter(isPost).map(entry => [entry.path, entry])).values()];
-
-  const fuse = new Fuse(posts, {
+  const fuse = new Fuse(entries.filter(isPost), {
     keys: [
       { name: 'title', weight: 3 },
       { name: 'description', weight: 2 },

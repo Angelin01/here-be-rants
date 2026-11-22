@@ -51,6 +51,7 @@
 {#- Our compiled JS imports packages by name (`from 'fuse.js'`), the browser looks them up here. Files come from pnpm vendor -#}
 <script type="importmap">{ "imports": { "fuse.js": "{{ get_url(path='vendor/fuse.min.mjs') }}" } }</script>
 <script type="module" src="{{ get_url(path='js/walls.js') }}"></script>
+<script type="module" src="{{ get_url(path='js/get-down.js') }}"></script>
 {% block scripts %}{% endblock %}
 </head>
 <body data-seed="{{ path }}" data-theme="{% block theme %}{% endblock %}">

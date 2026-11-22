@@ -1,5 +1,7 @@
 # here-be-rants
 
+**Live at https://angelin01.github.io/here-be-rants**
+
 A ranty blog about ranty things. Built with [Zola](https://www.getzola.org/) and a lot of JS/TS hate. Plus love for ASCII style art.
 
 ## Run it

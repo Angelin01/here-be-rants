@@ -31,6 +31,7 @@ const picker = document.querySelector<HTMLDetailsElement>('#themes');
 const seed = document.body.dataset.seed ?? location.pathname;
 
 let paintQueued = false;
+const beaconButtons: HTMLButtonElement[] = [];
 let themeName = DEFAULT_THEMES.dark;
 // Kept in memory too, so picking still works for the visit when storage is blocked
 let chosenTheme: string | null = null;
@@ -97,6 +98,29 @@ function cellsOf(el: Element, origin: DOMRect, { cw, lh }: Cell): Cells {
   };
 }
 
+// get-down.ts listens for clicks on these, buttons are reused across repaints so keyboard focus survives a resize
+function placeBeacons(beacons: Cells[], { cw, lh }: Cell) {
+  while (beaconButtons.length < beacons.length) {
+    const button = document.createElement('button');
+    button.className = 'beacon';
+    button.type = 'button';
+    button.ariaLabel = 'Whistle for a dragon';
+    field.append(button);
+    beaconButtons.push(button);
+  }
+  while (beaconButtons.length > beacons.length) {
+    beaconButtons.pop()!.remove();
+  }
+
+  beacons.forEach((b, i) => {
+    const style = beaconButtons[i].style;
+    style.left = `${b.left * cw}px`;
+    style.top = `${b.top * lh}px`;
+    style.width = `${(b.right - b.left + 1) * cw}px`;
+    style.height = `${(b.bottom - b.top + 1) * lh}px`;
+  });
+}
+
 function paint() {
   const cell = measure();
   const { cw, lh } = cell;
@@ -121,10 +145,11 @@ function paint() {
   const frames = [...court.querySelectorAll('pre')].map(el => cellsOf(el, origin, cell));
   const bars = [...court.querySelectorAll('blockquote')].map(el => cellsOf(el, origin, cell));
 
-  const { rows, tints } = outline(painting, frames, bars);
+  const { rows, tints, beacons } = outline(painting, frames, bars);
   walls.innerHTML = rows.map((row, r) => toHtml(row, tints[r])).join('\n');
   walls.dataset.cols = String(l.cols);
   field.style.height = `${rows.length * lh}px`;
+  placeBeacons(beacons, cell);
 }
 
 // Storage throws in some private modes and with blocked site data, the choice then only lasts the visit

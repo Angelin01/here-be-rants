@@ -490,3 +490,90 @@ header {
   gap: 2ch;
   margin-bottom: var(--lh);
 }
+
+/* Invisible over the castle's pennants and spire, they only show up when pointed at */
+.beacon {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.beacon:hover,
+.beacon:focus-visible {
+  background: color-mix(in srgb, var(--purple) 40%, transparent);
+}
+
+body.targeting,
+body.targeting * {
+  cursor: crosshair !important;
+}
+
+/* Where the bolt will land. In the page, not the screen, so it scrolls with the text it's aimed at */
+.marker {
+  position: absolute;
+  z-index: 10;
+  translate: -50% -50%;
+  pointer-events: none;
+  color: var(--ember);
+  text-shadow: 0 0 6px var(--ember);
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  to {
+    opacity: 0.3;
+  }
+}
+
+/* For screen readers only */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Everything flying is positioned with transforms from the top left of the screen */
+.fx {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.gone {
+  visibility: hidden;
+}
+
+.faded {
+  animation: fade-out 600ms ease-out forwards;
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes blast {
+  to {
+    transform: scale(10);
+    opacity: 0;
+  }
+}
+
+@keyframes shake {
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -2px); }
+  60% { transform: translate(-2px, -1px); }
+  80% { transform: translate(1px, 1px); }
+}
+
+#field.shake {
+  animation: shake 250ms linear;
+}

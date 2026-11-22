@@ -38,7 +38,7 @@ function build(cols: number, contentRows: number, seed = 'seed', scenery = SCENE
 }
 
 function untinted(rows: string[]): Painting {
-  return { rows, tints: rows.map(row => [...row].map(() => '')) };
+  return { rows, tints: rows.map(row => [...row].map(() => '')), beacons: [] };
 }
 
 // Rows can't come out too wide, the grid clips them. A wall piece of the wrong width breaks the moat instead.
@@ -120,6 +120,17 @@ test('given a footer, when building, then it gets empty rows between the keep an
     for (let r = top; r < top + footerRows; r++) {
       assert.equal(court(r).trim(), '', `cols=${cols} row ${r}: something drawn where the footer goes`);
     }
+  }
+});
+
+test('when building at any width, then the only beacon sits on the keep spire', () => {
+  for (let cols = MIN_COLS; cols <= MAX_COLS; cols++) {
+    const { rows, beacons } = castle(layout(cols), 40, rng('seed'), NO_FLUFF);
+    const glyphsAt = (b: (typeof beacons)[number]) => [...rows[b.top]].slice(b.left, b.right + 1).join('');
+
+    // Narrow castles too thin for a keep have no spire, so no beacon
+    assert.equal(beacons.length, rows.some(r => r.includes('▲▲')) ? 1 : 0, `cols=${cols}`);
+    assert.ok(beacons.every(b => glyphsAt(b) === '▲▲'), `cols=${cols}: the beacon misses the spire`);
   }
 });
 
