@@ -2,6 +2,12 @@
 {% block title %}{{ section.title }} - {{ config.title }}{% endblock %}
 {% block content %}
 <h1>{{ section.title }}</h1>
-{% set pages = section.pages %}
+{% set pages = paginator.pages %}
 {% include "post_list.html" %}
+{% if paginator.previous or paginator.next %}
+<nav class="pager" aria-label="More posts">
+{% if paginator.previous %}<a href="{{ paginator.previous }}"><span aria-hidden="true">« </span>Newer rants</a>{% else %}<span></span>{% endif %}
+{% if paginator.next %}<a href="{{ paginator.next }}">Older rants<span aria-hidden="true"> »</span></a>{% endif %}
+</nav>
+{% endif %}
 {% endblock %}

@@ -119,8 +119,11 @@ async function checkShareTags(): Promise<string[]> {
   }
 
   const image = content('og:image');
-  if (image && !(await fetch(image)).ok) {
-    out.push(`share preview: og:image does not load (${image})`);
+  if (image) {
+    const loads = await fetch(image).then(response => response.ok, () => false);
+    if (!loads) {
+      out.push(`share preview: og:image does not load (${image})`);
+    }
   }
 
   return out;
@@ -176,9 +179,14 @@ interface PageOptions {
 }
 
 async function pageOk(page: Page, urlPath: string, name: string, { js = true, theme }: PageOptions = {}): Promise<boolean> {
-  await page.goto(BASE + urlPath);
+  const response = await page.goto(BASE + urlPath);
 
   const problems: string[] = [];
+  // A missing page still renders the 404 page, which passes every other check
+  const expectedStatus = urlPath === NOT_FOUND_PAGE ? 404 : 200;
+  if (response?.status() !== expectedStatus) {
+    problems.push(`HTTP ${response?.status()}, expected ${expectedStatus}`);
+  }
   if (!(await waitForFont(page))) {
     problems.push(`font did not load in ${FONT_TIMEOUT_MS}ms`);
   }
@@ -511,6 +519,8 @@ async function main(args: string[]): Promise<number> {
   }
 
   fs.rmSync(SHOTS, { recursive: true, force: true });
+  // zola serve falls back to stale files in public/, which can hide pages that no longer build
+  fs.rmSync(path.join(ROOT, 'public'), { recursive: true, force: true });
   fs.mkdirSync(SHOTS, { recursive: true });
   const zola = childProcess.spawn('zola', ['serve', '--drafts', '--port', String(PORT)], { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
 

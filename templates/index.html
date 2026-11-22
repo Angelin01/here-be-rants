@@ -5,19 +5,20 @@
 <h1>{{ config.title }}</h1>
 <p class="meta">{{ config.description }}</p>
 <p class="search" hidden><label for="search">Search:</label><input id="search" type="search" placeholder="rants, ramblings, dwarves..." autocomplete="off" data-index="{{ get_url(path='search_index.en.json') }}"></p>
+{% set posts = get_section(path="posts/_index.md") %}
 <div id="listing">
-{% set pages = paginator.pages %}
+{#- The first page's worth, the rest lives on the paginated /posts/ -#}
+{% set pages = posts.pages[:posts.paginate_by] %}
 {% include "post_list.html" %}
-{% if paginator.previous or paginator.next %}
+{% if posts.pages | length > posts.paginate_by %}
 <nav class="pager" aria-label="More posts">
-{% if paginator.previous %}<a href="{{ paginator.previous }}"><span aria-hidden="true">« </span>Newer rants</a>{% else %}<span></span>{% endif %}
-{% if paginator.next %}<a href="{{ paginator.next }}">Older rants<span aria-hidden="true"> »</span></a>{% endif %}
+<span></span>
+<a href="{{ get_url(path='@/posts/_index.md') }}page/2/">Older rants<span aria-hidden="true"> »</span></a>
 </nav>
 {% endif %}
 </div>
 <ul id="results" class="posts" role="list" aria-label="Search results" hidden></ul>
 <p id="no-results" class="meta" role="status" hidden>No rants match. Maybe the dragon ate them.</p>
 {#- Search results come from the whole index, but it has no dates. Path to date for every post -#}
-{% set posts = get_section(path="posts/_index.md") %}
 <script type="application/json" id="post-dates">{ {%- for p in posts.pages -%}{{ p.path | json_encode | safe }}: {{ p.date | json_encode | safe }}{% if not loop.last %},{% endif %}{%- endfor -%} }</script>
 {% endblock %}
