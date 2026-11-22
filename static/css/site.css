@@ -490,3 +490,34 @@ header {
   gap: 2ch;
   margin-bottom: var(--lh);
 }
+
+/* Everything flying is positioned with transforms from the top left of the screen */
+.fx {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.gone {
+  visibility: hidden;
+}
+
+@keyframes blast {
+  to {
+    transform: scale(10);
+    opacity: 0;
+  }
+}
+
+@keyframes shake {
+  20% { transform: translate(-6px, 3px); }
+  40% { transform: translate(5px, -4px); }
+  60% { transform: translate(-4px, -2px); }
+  80% { transform: translate(3px, 2px); }
+}
+
+#field.shake {
+  animation: shake 250ms linear;
+}

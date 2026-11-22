@@ -5,6 +5,7 @@
     "lib": ["ES2024", "DOM"],
     "types": ["node"],
     "strict": true,
+    "moduleDetection": "force",
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "erasableSyntaxOnly": true,
