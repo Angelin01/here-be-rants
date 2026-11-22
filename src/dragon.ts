@@ -1,4 +1,4 @@
-import { explode, fx, stepParticles } from './blast.ts';
+import { explode, fadeAway, fx, stepParticles } from './blast.ts';
 
 // Seen from above, facing right, wings swept back for the dive. Rotated to match his heading.
 // The two leftmost cells below the middle row are Hiccup's red tail fin, the rest is night.
@@ -64,7 +64,15 @@ function pickStart(target: Point, margin: number): Point {
 
 // Resolves once he's gone and the dust has settled. pageX and pageY are page coordinates, so the hit follows the
 // text if the reader scrolls. impactAt is a performance.now() time.
-export async function launch(pageX: number, pageY: number, impactAt: number): Promise<void> {
+export async function launch(pageX: number, pageY: number, impactAt: number, onImpact = () => {}): Promise<void> {
+  // Reduced motion: no dive and no debris, but the sound still plays
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    await wait(impactAt - performance.now());
+    onImpact();
+    fadeAway(pageX - scrollX, pageY - scrollY);
+    return;
+  }
+
   await wait(impactAt - FLIGHT_TIME * 1000 - performance.now());
 
   getSelection()?.removeAllRanges();
@@ -131,6 +139,7 @@ export async function launch(pageX: number, pageY: number, impactAt: number): Pr
           bolt.el.remove();
           bolt = null;
           exploded = true;
+          onImpact();
           explode(t.x, t.y);
         }
       }

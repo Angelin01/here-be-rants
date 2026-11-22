@@ -9,9 +9,9 @@ const RING_LIFE = 0.35;
 const LETTER_LIFE = 4;
 const FLASH_MS = 600;
 const SHAKE_MS = 250;
-// Sample every half cell so no glyph between samples is skipped
-const SAMPLE_X = 4;
-const SAMPLE_Y = 8;
+// One sample per grid cell finds every glyph, and each sample is a hit test, so don't sample denser
+const SAMPLE_X = 9;
+const SAMPLE_Y = 16;
 const OFFSCREEN_MARGIN = 50;
 export const GLOW = 'text-shadow: 0 0 4px #9b5de5, 0 0 8px #9b5de5';
 
@@ -89,7 +89,7 @@ function caretAt(x: number, y: number): { node: Node; offset: number } | null {
 function glyphAt(x: number, y: number, court: Element): Glyph | null {
   const caret = caretAt(x, y);
   const node = caret?.node;
-  if (!(node instanceof Text) || !court.contains(node) || node.parentElement?.classList.contains('gone')) {
+  if (!(node instanceof Text) || !court.contains(node) || node.parentElement?.matches('.gone, .faded')) {
     return null;
   }
 
@@ -138,14 +138,20 @@ function glyphsNear(x: number, y: number, court: Element): Glyph[] {
 }
 
 // The original keeps its space, hidden, so the grid never moves
-function blowAway({ node, offset, rect }: Glyph, x: number, y: number) {
-  const color = getComputedStyle(node.parentElement!).color;
+function hide({ node, offset }: Glyph, className: string): Text {
   const glyph = node.splitText(offset);
   glyph.splitText(1);
-  const gone = document.createElement('span');
-  gone.className = 'gone';
-  glyph.replaceWith(gone);
-  gone.append(glyph);
+  const wrapper = document.createElement('span');
+  wrapper.className = className;
+  glyph.replaceWith(wrapper);
+  wrapper.append(glyph);
+  return glyph;
+}
+
+// color is read before any letter is hidden, see explode()
+function blowAway(hit: Glyph, color: string, x: number, y: number) {
+  const { rect } = hit;
+  const glyph = hide(hit, 'gone');
 
   const angle = Math.atan2(rect.top + rect.height / 2 - y, rect.left + rect.width / 2 - x);
   const speed = 300 + Math.random() * 450;
@@ -200,24 +206,30 @@ function flash(x: number, y: number) {
 }
 
 function shake(field: Element) {
-  field.classList.remove('shake');
-  // Reading layout restarts the animation if a shake is already running
-  void (field as HTMLElement).offsetWidth;
   field.classList.add('shake');
   setTimeout(() => field.classList.remove('shake'), SHAKE_MS);
 }
 
+// Highest offset first, so splitting a text node doesn't shift the offsets still to come
+function hitsAround(x: number, y: number): Glyph[] {
+  return glyphsNear(x, y, document.getElementById('court')!).sort((a, b) => b.offset - a.offset);
+}
+
 export function explode(x: number, y: number) {
-  const court = document.getElementById('court')!;
-  const hits = glyphsNear(x, y, court);
-  // Highest offset first, so splitting a text node doesn't shift the offsets still to come
-  hits.sort((a, b) => b.offset - a.offset);
-  for (const hit of hits) {
-    blowAway(hit, x, y);
-  }
+  // All reads before any write: hiding a letter invalidates styles, and reading a color after that recalculates the
+  // whole page, once per letter
+  const hits = hitsAround(x, y);
+  const colors = hits.map(hit => getComputedStyle(hit.node.parentElement!).color);
+  hits.forEach((hit, i) => blowAway(hit, colors[i], x, y));
 
   flash(x, y);
   shockwave(x, y);
   sparks(x, y);
   shake(document.getElementById('field')!);
+}
+
+export function fadeAway(x: number, y: number) {
+  for (const hit of hitsAround(x, y)) {
+    hide(hit, 'faded');
+  }
 }

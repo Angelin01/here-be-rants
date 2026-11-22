@@ -4,6 +4,7 @@ const MOAT = '≈';
 const ROAD = '++++';
 const BRIDGE = '≡≡≡≡';
 const HUTS = '⌂⌂♣τ';
+const SPIRE = '▲▲';
 
 const TEXT_MAX = 72;
 // Below this the double wall and towers don't fit, so we fall back to a thin single wall
@@ -154,6 +155,8 @@ export interface Painting {
   rows: string[];
   // CSS variable per cell, empty where the glyph's usual color applies
   tints: string[][];
+  // Where readers can whistle for the dragon: the keep's spire
+  beacons: Cells[];
 }
 
 interface Canvas {
@@ -241,8 +244,20 @@ function toCanvas({ rows, tints }: Painting): Canvas {
   return { glyphs: rows.map(row => [...row]), tints: tints.map(row => [...row]) };
 }
 
-function toPainting({ glyphs, tints }: Canvas): Painting {
-  return { rows: glyphs.map(row => row.join('')), tints };
+function toPainting({ glyphs, tints }: Canvas, beacons: Cells[]): Painting {
+  return { rows: glyphs.map(row => row.join('')), tints, beacons };
+}
+
+function find(canvas: Canvas, fromRow: number, toRow: number, glyphs: string): Cells[] {
+  const found: Cells[] = [];
+  for (let r = fromRow; r < toRow; r++) {
+    const row = canvas.glyphs[r].join('');
+    for (let c = row.indexOf(glyphs); c >= 0; c = row.indexOf(glyphs, c + glyphs.length)) {
+      found.push({ top: r, bottom: r, left: c, right: c + glyphs.length - 1 });
+    }
+  }
+
+  return found;
 }
 
 // Drawing over a cell replaces its tint too, so a pond under a wall vanishes
@@ -458,7 +473,9 @@ export function castle(l: Layout, contentRows: number, rand: Rand, scenery: Scen
 
   s.back.forEach((row, i) => put(canvas, backY + i, left, row));
 
-  return toPainting(canvas);
+  const keepTop = l.courtY + keepY;
+  const beacons = find(canvas, keepTop, keepTop + keepRows, SPIRE);
+  return toPainting(canvas, beacons);
 }
 
 // Grid row where the footer goes, between the keep and the back wall
@@ -485,5 +502,5 @@ export function outline(painting: Painting, frames: Cells[], bars: Cells[]): Pai
     }
   }
 
-  return toPainting(canvas);
+  return toPainting(canvas, painting.beacons);
 }
