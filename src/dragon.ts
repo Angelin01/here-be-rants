@@ -83,6 +83,8 @@ export async function launch(pageX: number, pageY: number, impactAt: number, onI
   const target = (): Point => ({ x: pageX - scrollX, y: pageY - scrollY });
 
   const start = pickStart(target(), margin);
+  // fx spawns at the top left, so place it at the start before the waits below let it paint there
+  el.style.transform = `translate(${start.x - w / 2}px, ${start.y - h / 2}px)`;
   const toTarget = Math.hypot(target().x - start.x, target().y - start.y);
   const fireAt = toTarget - Math.min(Math.max(toTarget * 0.45, SHOT_RANGE[0]), SHOT_RANGE[1]);
   const speed = Math.max(MIN_SPEED, fireAt / DIVE_TIME);
