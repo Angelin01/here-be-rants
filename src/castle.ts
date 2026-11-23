@@ -439,7 +439,7 @@ function courtyard(l: Layout, contentRows: number, footerRows: number) {
   return { s, keepRows, keepY, footerY, courtRows };
 }
 
-export function castle(l: Layout, contentRows: number, rand: Rand, scenery: Scenery, footerRows = 0): Painting {
+export function castle(l: Layout, contentRows: number, rand: Rand, scenery: Scenery, footerRows = 0, minRows = 0): Painting {
   const { s, keepRows, keepY, courtRows } = courtyard(l, contentRows, footerRows);
   // Grid rows, counted from the top
   const gateY = s.meadowRows + 1;
@@ -475,6 +475,11 @@ export function castle(l: Layout, contentRows: number, rand: Rand, scenery: Scen
 
   const keepTop = l.courtY + keepY;
   const beacons = find(canvas, keepTop, keepTop + keepRows, SPIRE);
+
+  // Short pages on tall screens. Drawn last so the castle itself doesn't change with the screen height
+  const below = meadow(l.cols, minRows - height, rand, scenery.fluff, scenery.density ?? MEADOW_DENSITY);
+  canvas.glyphs.push(...below.glyphs);
+  canvas.tints.push(...below.tints);
   return toPainting(canvas, beacons);
 }
 

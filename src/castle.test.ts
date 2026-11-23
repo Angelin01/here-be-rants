@@ -175,6 +175,17 @@ test('given a pond, when building narrow, then there are no ponds', () => {
   }
 });
 
+test('given a tall screen, when building, then fluff fills the screen and the castle is unchanged', () => {
+  const castleOnly = build(WIDE_COLS, 7);
+  const minRows = castleOnly.length + 20;
+
+  const filled = castle(layout(WIDE_COLS), 7, rng('seed'), SCENERY, 0, minRows).rows;
+
+  assert.equal(filled.length, minRows);
+  assert.deepEqual(filled.slice(0, castleOnly.length), castleOnly);
+  assert.ok(filled.slice(castleOnly.length).every(row => row.length === WIDE_COLS && row.trim() !== ''));
+});
+
 test('given a frame, when outlining, then a box is drawn on its edges and the inside is untouched', () => {
   const rows = ['......', '......', '......', '......'];
   const frame = { top: 0, bottom: 3, left: 1, right: 4 };
