@@ -139,7 +139,9 @@ function paint() {
   if (footer) {
     footer.style.top = `${(footerRow(l, contentRows) - l.content.row) * lh}px`;
   }
-  const painting = castle(l, contentRows, rng(seed), THEMES[themeName], footerRows);
+  // Rounded down to avoid a scrollbar
+  const screenRows = Math.floor(document.documentElement.clientHeight / lh);
+  const painting = castle(l, contentRows, rng(seed), THEMES[themeName], footerRows, screenRows);
 
   const origin = field.getBoundingClientRect();
   const frames = [...court.querySelectorAll('pre')].map(el => cellsOf(el, origin, cell));
