@@ -17,7 +17,7 @@ The entire style of this website is a homage to [Dwarf Fortress](https://www.bay
 
 Dwarf Fortress is not my most played game, not by a longshot, but it is definitely my favorite. I go on and on about its systems and what it does, but that would bore you, so instead let me just summarize that I think it deserves a spot as one of the best games of all time, for damn good reasons.
 
-The style is also sort of inspired by [Tramoia](https://tramoia.sh/), a Brazilian blog about crypto security. I'm gonna be honest, the content of the website goes right over my head, but I think it looks beautiful. Check it out! I played with the fluid simulations a little too much.
+The style is also sort of inspired by [Tramoia](https://tramoia.sh/), a Brazilian blog about cyber security. I'm gonna be honest, the content of the website goes right over my head sometimes, but I think it looks beautiful. Check it out! I played with the fluid simulations a little too much.
 
 ## But why does the website even exist?
 
