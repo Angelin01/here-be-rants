@@ -1,7 +1,7 @@
 import { explode, fadeAway, fx, stepParticles } from './blast.ts';
 
 // Seen from above, facing right, wings swept back for the dive. Rotated to match his heading.
-// The two leftmost cells below the middle row are Hiccup's red tail fin, the rest is night.
+// The two leftmost cells above the middle row are the left red tail fin, the rest is night.
 const ART = [
   '   ▀▀▄     ',
   '▀▄   ▀█▄   ',
@@ -41,7 +41,7 @@ function drawDragon(el: HTMLElement) {
     const spans = [...row].map((glyph, i) => {
       const span = document.createElement('span');
       span.textContent = glyph;
-      span.style.color = r > (ART.length - 1) / 2 && i < 2 ? FIN : NIGHT;
+      span.style.color = r < (ART.length - 1) / 2 && i < 2 ? FIN : NIGHT;
       return span;
     });
     return r > 0 ? ['\n', ...spans] : spans;
